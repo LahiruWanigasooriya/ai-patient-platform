@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-multipart
+chromadb
+google-genai
+langchain-text-splitters
+pypdf2
