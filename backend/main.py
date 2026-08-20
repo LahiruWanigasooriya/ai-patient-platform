@@ -43,10 +43,10 @@ collection = chroma_client.get_or_create_collection(
     embedding_function=google_ef
 )
 
-# Allow requests from our Next.js frontend (default port 3000)
+# Allow requests from our Next.js frontend (default port 3000 and 3001)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"], 
+    allow_origins=["http://localhost:3000", "http://localhost:3001"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
