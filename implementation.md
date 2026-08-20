@@ -2,6 +2,17 @@
 
 This document logs the architectural changes and implementation steps taken to build the platform.
 
+## How the Platform is Used (The User Journey)
+This platform acts as an ultra-fast search engine and reading assistant for medical professionals, turning massive piles of complex medical PDFs into an interactive conversation that saves hours of time.
+
+1. **Secure Login:** A medical professional logs into MedIntel securely to access their dashboard.
+2. **Global Search:** They land on the search page(Home), viewing a grid of their recent patients color-coded by status (Critical, Stable, etc.). They can use the massive hero search bar to quickly find a specific patient or ask broad queries like, "Show me all my patients currently prescribed Metformin."
+3. **Deep Dive:** Clicking on a patient (e.g., "John Doe") seamlessly slides open the AI Assistant sidebar.
+The doctor sees "John Doe" on their schedule for the afternoon. They click on John's card.The AI Assistant sidebar smoothly slides in from the right. The AI automatically knows it is now talking specifically about John Doe.
+4. **Adding New Medical Records (Data Ingestion):** If the doctor receives a massive 30-page discharge summary, they upload the PDF via the chat's paperclip icon. The FastAPI backend instantly chops it into vector embeddings and saves it to ChromaDB.
+5. **The Co-Pilot Conversation:** The doctor can now chat with the AI (e.g., *"Does John have any history of severe allergic reactions to penicillin based on the records I just uploaded?"*). The AI uses RAG (`searchDocuments`) to find the answer in milliseconds, or uses the `calculator` tool to generate visual widgets for things like BMI calculations.
+
+---
 ## Epic 0: Project Scaffolding & Porting (Complete)
 
 We transitioned from a basic "AI Chatbot" proof-of-concept into a structured, production-ready SaaS repository.
