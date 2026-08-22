@@ -1,29 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { MagnifyingGlassIcon, UserCircleIcon, DocumentTextIcon, ChartBarIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-
-// Dummy data for the patient grid
-const DUMMY_PATIENTS = [
-  { id: 1, name: "John Doe", age: 45, status: "Critical", lastUpload: "2 hours ago", summary: "Patient admitted with severe hypertension. History of Type 2 Diabetes." },
-  { id: 2, name: "Jane Smith", age: 32, status: "Stable", lastUpload: "1 day ago", summary: "Routine checkup. Blood work shows normal levels. Needs follow-up on iron." },
-  { id: 3, name: "Robert Johnson", age: 58, status: "Review", lastUpload: "3 days ago", summary: "Post-op recovery from appendectomy. Incision healing well." },
-  { id: 4, name: "Emily Davis", age: 24, status: "Stable", lastUpload: "5 hours ago", summary: "Asthma flare-up. Prescribed Albuterol inhaler." },
-  { id: 5, name: "Michael Brown", age: 71, status: "Critical", lastUpload: "10 mins ago", summary: "Cardiac arrhythmia detected. ECG uploaded. Pending cardiologist review." },
-  { id: 6, name: "Sarah Wilson", age: 41, status: "Stable", lastUpload: "1 week ago", summary: "Annual physical. No significant changes. Vaccinations up to date." },
-];
+import { Patient } from "@prisma/client";
+import { getPatients } from "./actions/patients";
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPatients = DUMMY_PATIENTS.filter(p => 
+  useEffect(() => {
+    if (session) {
+      getPatients().then(data => {
+        setPatients(data);
+        setLoading(false);
+      });
+    } else {
+      setPatients([]);
+      setLoading(false);
+    }
+  }, [session]);
+
+  const filteredPatients = patients.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.summary.toLowerCase().includes(searchQuery.toLowerCase())
+    p.summary?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -136,7 +142,20 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-              {filteredPatients.map((patient) => (
+              {loading ? (
+                // Loading Skeletons
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm p-6 h-48 animate-pulse">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2 mb-4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+                  </div>
+                ))
+              ) : filteredPatients.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-gray-500">
+                  {session ? "No patients found matching your search." : "Please log in to view your patients."}
+                </div>
+              ) : filteredPatients.map((patient) => (
                 <div 
                   key={patient.id} 
                   onClick={() => setSelectedPatient(patient.id)}
@@ -168,7 +187,7 @@ export default function Dashboard() {
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center">
                       <DocumentTextIcon className="w-4 h-4 mr-1" />
-                      Updated {patient.lastUpload}
+                      Updated {new Date(patient.updatedAt).toLocaleDateString()}
                     </div>
                     <div className="flex items-center text-emerald-600 font-medium">
                       Open AI Assistant &rarr;
