@@ -43,5 +43,21 @@ We transitioned from a basic "AI Chatbot" proof-of-concept into a structured, pr
 
 ---
 
-## Epic 1: Database & Authentication (Pending)
-*To be documented in the next phase.*
+## Epic 1: Database & Authentication (In Progress)
+
+We implemented a robust persistence layer and authentication framework to transition the platform from dummy data to a secure, multi-tenant application.
+
+**Step 1: PostgreSQL & Prisma Initialization**
+- Configured **Prisma v7** with a local PostgreSQL database (`medintel`).
+- Handled Prisma v7 breaking changes by moving the database connection string from `schema.prisma` into a dedicated `prisma.config.ts` file.
+- Designed the relational schema featuring the following core models:
+  - `User`: Stores medical staff profiles and relationships to their assigned patients.
+  - `Patient`: Stores demographic data, AI summaries, and medical status.
+  - `Document`: Represents the uploaded PDFs, acting as the relational link between a Patient and their ChromaDB vector embeddings.
+
+**Step 2: Auth.js (NextAuth) Integration**
+- Installed `next-auth@beta` (Auth.js v5) and `@auth/prisma-adapter`.
+- Configured `src/auth.ts` to support dual authentication methods:
+  - **Credentials Provider:** Standard Email/Password login (using `bcryptjs` for secure hashing).
+  - **Google OAuth Provider:** For seamless SSO access.
+- Generated the standard Auth.js API route (`src/app/api/auth/[...nextauth]/route.ts`) to handle session management.

@@ -25,3 +25,9 @@ This system is an **Agent**, not just a chatbot.
 
 ## 5. Generative UI
 Instead of relying on plain text, the frontend intercepts tool completion states (`output-available`). If the agent performs a calculation or fetches data, the frontend dynamically renders beautiful, structured React components (like a math receipt or a health trend chart) directly inside the chat interface.
+
+## 6. Database & Persistence Layer
+While the AI processes unstructured PDFs, the platform requires a robust persistence layer to manage relational state.
+- **PostgreSQL & Prisma:** We use PostgreSQL as our primary relational database, mapped and queried via the Prisma ORM. It stores the `User` profiles (Doctors), their assigned `Patient` rosters, and the metadata for each uploaded `Document`.
+- **Multi-Tenant Security:** By creating a strict relational link between a `Document` and a `Patient` in PostgreSQL, we ensure that the RAG pipeline can dynamically filter ChromaDB searches. This guarantees that one patient's medical records cannot leak into another patient's query context.
+- **Authentication (Auth.js):** Access is gated using NextAuth v5, supporting both secure credentials (hashed via bcrypt) and modern OAuth providers for seamless hospital integration.
