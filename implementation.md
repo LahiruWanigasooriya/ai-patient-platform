@@ -13,7 +13,17 @@ The doctor sees "John Doe" on their schedule for the afternoon. They click on Jo
 5. **The Co-Pilot Conversation:** The doctor can now chat with the AI (e.g., *"Does John have any history of severe allergic reactions to penicillin based on the records I just uploaded?"*). The AI uses RAG (`searchDocuments`) to find the answer in milliseconds, or uses the `calculator` tool to generate visual widgets for things like BMI calculations.
 
 ---
-## Epic 0: Project Scaffolding & Porting (Complete)
+## Development Roadmap (Epics)
+
+The development of the platform is broken down into four distinct, sequential Epics:
+
+- **Epic 0: Project Scaffolding & Porting (Completed):** Transitioning the proof-of-concept AI chatbot into a structured, Next.js 15 App Router architecture. Setting up the Vercel AI SDK Agentic Loop and separating the chat interface into a modular `<ChatSidebar>` component.
+- **Epic 1: Database & Authentication (Completed):** Implementing a robust data persistence layer using PostgreSQL and Prisma ORM. Securing the application by integrating NextAuth (Auth.js v5) with both Google and Credentials providers, and building a professional Pixabay-inspired login interface.
+- **Epic 2: The Data Layer & Dashboard Integration (Upcoming):** Hooking up the frontend to the database. Replacing all hardcoded dummy data with live Prisma queries, creating the dynamic Patient Grid, and finalizing the layout functionality.
+- **Epic 3: Multi-Tenant RAG & AI Upgrades (Future):** Linking the PostgreSQL database to the ChromaDB vector embeddings securely. Creating upload mechanisms for PDFs that automatically associate them with specific patients, ensuring the LLM's RAG context is perfectly filtered by patient ID.
+
+---
+## Epic 0: Project Scaffolding & Porting (Completed)
 
 We transitioned from a basic "AI Chatbot" proof-of-concept into a structured, production-ready SaaS repository.
 
@@ -43,21 +53,48 @@ We transitioned from a basic "AI Chatbot" proof-of-concept into a structured, pr
 
 ---
 
-## Epic 1: Database & Authentication (In Progress)
+## Epic 1: Database & Authentication (Completed)
 
 We implemented a robust persistence layer and authentication framework to transition the platform from dummy data to a secure, multi-tenant application.
 
 **Step 1: PostgreSQL & Prisma Initialization**
 - Configured **Prisma v7** with a local PostgreSQL database (`medintel`).
-- Handled Prisma v7 breaking changes by moving the database connection string from `schema.prisma` into a dedicated `prisma.config.ts` file.
-- Designed the relational schema featuring the following core models:
-  - `User`: Stores medical staff profiles and relationships to their assigned patients.
-  - `Patient`: Stores demographic data, AI summaries, and medical status.
-  - `Document`: Represents the uploaded PDFs, acting as the relational link between a Patient and their ChromaDB vector embeddings.
+- Handled Prisma v7 breaking changes by moving the database connection string from `schema.prisma` into a dedicated `prisma.config.ts` file, and integrating the `@prisma/adapter-pg` driver to replace the deprecated Rust query engine.
+- Designed the relational schema featuring the core models: `User`, `Patient`, and `Document`.
+- Created a robust Seed Script (`prisma/seed.ts`) to automatically populate the database with a dummy doctor profile and initial patient records.
 
 **Step 2: Auth.js (NextAuth) Integration**
 - Installed `next-auth@beta` (Auth.js v5) and `@auth/prisma-adapter`.
 - Configured `src/auth.ts` to support dual authentication methods:
   - **Credentials Provider:** Standard Email/Password login (using `bcryptjs` for secure hashing).
   - **Google OAuth Provider:** For seamless SSO access.
-- Generated the standard Auth.js API route (`src/app/api/auth/[...nextauth]/route.ts`) to handle session management.
+- Wrapped the application in a NextAuth `<SessionProvider>` to manage global authentication state.
+
+**Step 3: Pixabay-Inspired Login UI**
+- Built a highly polished, custom authentication page (`src/app/login/page.tsx`) mirroring the aesthetic of the Pixabay login modal.
+- Features dual-pane design with a medical/nature stock background, floating labels, and integrated Google/Credentials toggles.
+- Implemented robust Client-Side Authentication using `signIn` from `next-auth/react` to bypass known React 19 Server Action redirect bugs, ensuring a perfect user experience with explicit error handling.
+- Updated the main Dashboard Navbar to conditionally render a User Profile Avatar and "Sign Out" button when authenticated.
+
+---
+
+## Epic 2: The Data Layer & Dashboard Integration (Upcoming)
+
+*This epic will cover replacing the hardcoded frontend data with live Prisma database queries.*
+
+**Planned Steps:**
+- Establish server-side Prisma calls in `page.tsx` to fetch the authenticated doctor's patients.
+- Remove the `DUMMY_PATIENTS` array and replace it with real PostgreSQL data.
+- Ensure the selected patient's ID is properly passed to the `<ChatSidebar>` component.
+
+---
+
+## Epic 3: Multi-Tenant RAG & AI Upgrades (Future)
+
+*This epic will cover the complex integration of the relational database with the AI vector database (ChromaDB).*
+
+**Planned Steps:**
+- Create an upload mechanism for medical PDFs via the Next.js frontend.
+- Send the PDF to the FastAPI backend, process it, and generate vector embeddings.
+- Store the embeddings in ChromaDB, and save the metadata (Document ID, Patient ID) in PostgreSQL.
+- Update the Vercel AI SDK tools (`searchDocuments`) to accept a `patientId` parameter, ensuring the LLM can only query ChromaDB for documents belonging to the currently selected patient.

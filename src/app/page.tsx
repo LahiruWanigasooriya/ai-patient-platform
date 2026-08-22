@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { ChatSidebar } from "@/components/ChatSidebar";
-import { MagnifyingGlassIcon, UserCircleIcon, DocumentTextIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, UserCircleIcon, DocumentTextIcon, ChartBarIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 // Dummy data for the patient grid
 const DUMMY_PATIENTS = [
@@ -15,6 +17,7 @@ const DUMMY_PATIENTS = [
 ];
 
 export default function Dashboard() {
+  const { data: session } = useSession();
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -43,9 +46,36 @@ export default function Dashboard() {
             <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-emerald-500 font-medium transition-colors">Explore</a>
             <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-emerald-500 font-medium transition-colors">Upload Records</a>
             <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-emerald-500 font-medium transition-colors">Analytics</a>
-            <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full font-semibold transition-all shadow-md hover:shadow-lg">
-              Log In
-            </button>
+            
+            {session ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+                    {session.user?.image ? (
+                      <img src={session.user.image} alt="User avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                        {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || 'D'}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => signOut()}
+                  className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  title="Sign Out"
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <Link href="/login" className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full font-semibold transition-all shadow-md hover:shadow-lg">
+                Log In
+              </Link>
+            )}
           </nav>
         </header>
 
