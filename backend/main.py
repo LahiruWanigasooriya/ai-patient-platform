@@ -1,6 +1,7 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from typing import Optional
 import PyPDF2
 import io
 import os
@@ -26,7 +27,7 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
         embeddings = []
         for text in input:
             response = self.client.models.embed_content(
-                model='gemini-embedding-002',
+                model='gemini-embedding-001',
                 contents=text
             )
             embeddings.append(response.embeddings[0].values)
@@ -57,7 +58,10 @@ async def health_check():
     return {"status": "ok", "message": "FastAPI backend is running!"}
 
 @app.post("/api/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    patient_id: Optional[int] = Form(None)
+):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
@@ -82,11 +86,15 @@ async def upload_pdf(file: UploadFile = File(...)):
         chunks = text_splitter.split_text(extracted_text)
 
         # Step 5: Vector Database & Embeddings
-        # We generate unique IDs for each chunk
-        ids = [f"{file.filename}_chunk_{i}" for i in range(len(chunks))]
+        # Prefix chunk IDs with patient_id if available to avoid cross-patient collisions
+        chunk_prefix = f"patient_{patient_id}_" if patient_id is not None else ""
+        ids = [f"{chunk_prefix}{file.filename}_chunk_{i}" for i in range(len(chunks))]
         
-        # We attach metadata to know where the chunks came from
-        metadatas = [{"source": file.filename} for _ in range(len(chunks))]
+        # We attach metadata to know where the chunks came from and partition by patient_id
+        metadatas = [
+            {"source": file.filename, "patient_id": patient_id} if patient_id is not None else {"source": file.filename}
+            for _ in range(len(chunks))
+        ]
 
         # Add to ChromaDB. The GoogleGenerativeAiEmbeddingFunction will automatically 
         # call the Gemini API to embed these chunks behind the scenes!
@@ -99,6 +107,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         return {
             "status": "success", 
             "filename": file.filename, 
+            "patient_id": patient_id,
             "pages_processed": len(pdf_reader.pages),
             "chunks_created": len(chunks),
             "chromadb_status": "Chunks successfully embedded and stored in Vector DB.",
@@ -112,23 +121,36 @@ from pydantic import BaseModel
 class QueryRequest(BaseModel):
     query: str
     n_results: int = 3
+    patient_id: Optional[int] = None
 
 @app.post("/api/retrieve")
 async def retrieve_context(request: QueryRequest):
     try:
+        where_filter = None
+        if request.patient_id is not None:
+            where_filter = {"patient_id": request.patient_id}
+
         # Query ChromaDB using the same embedding function
         results = collection.query(
             query_texts=[request.query],
-            n_results=request.n_results
+            n_results=request.n_results,
+            where=where_filter
         )
         
-        # Extract the matched documents
+        # Extract the matched documents and metadata
         documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+
+        formatted_results = []
+        for doc, meta in zip(documents, metadatas):
+            source = meta.get("source", "Medical Record") if meta else "Medical Record"
+            formatted_results.append(f"[{source}]:\n{doc}")
         
         return {
             "status": "success",
             "query": request.query,
-            "results": documents
+            "patient_id": request.patient_id,
+            "results": formatted_results
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve context: {str(e)}")

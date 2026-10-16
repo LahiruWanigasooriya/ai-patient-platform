@@ -6,6 +6,6 @@ export default defineConfig({
     seed: 'npx tsx ./prisma/seed.ts',
   },
   datasource: {
-    url: 'postgresql://postgres:postgresql@localhost:5432/medintel',
+    url: 'postgresql://postgres:postgresql@localhost:5458/medintel',
   },
 })

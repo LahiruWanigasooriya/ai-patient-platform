@@ -36,3 +36,38 @@ While the AI processes unstructured PDFs, the platform requires a robust persist
 ### Security Architecture
 - **Multi-Tenant Security:** By creating a strict relational link between a `Document` and a `Patient` in PostgreSQL, we ensure that the RAG pipeline can dynamically filter ChromaDB searches. This guarantees that one patient's medical records cannot leak into another patient's query context.
 - **Authentication (Auth.js):** Access is gated using NextAuth v5, supporting both secure credentials (hashed via bcrypt) and modern OAuth providers for seamless hospital integration. The UI heavily utilizes Client-Side Authentication (`next-auth/react`) to bypass React 19 Server Action redirect quirks, ensuring a seamless user experience.
+
+## 7. Dynamic Context Injection & Clinical Context Isolation
+A critical vulnerability in multi-patient clinical interfaces is **context contamination**—where insights, diagnoses, or notes from Patient A bleed into the LLM conversation for Patient B. MedIntel addresses this through a dual-layer isolation model:
+
+1. **Client-Side Component Isolation (`key={selectedPatient}`):**
+   - In React, changing the `key` prop on a component forces React to completely unmount the old instance and mount a fresh one.
+   - When a physician switches from John Doe to Jane Smith, the entire `<ChatSidebar>` component unmounts. In-memory message states, uploaded file tokens, and conversation history are immediately wiped from client memory.
+2. **Server-Side Dynamic Prompt Enrichment:**
+   - Every outbound chat request transports the active `patientId` through the Vercel AI SDK HTTP transport layer.
+   - The `/api/chat` server route queries PostgreSQL in real-time, fetching the verified demographic and medical summary directly from the primary relational source of truth.
+   - The server dynamically constructs the LLM's `system` instructions with this verified patient record before any user tokens reach the model. This guarantees that hallucination risk is minimized and that the AI assistant operates strictly within the boundaries of the active patient file.
+
+## 8. Multi-Tenant Retrieval-Augmented Generation (RAG) & Vector Database Partitioning
+In traditional single-user RAG, all embeddings reside in a single shared vector space. In clinical systems, this presents an unacceptable compliance and safety hazard: if Doctor A searches for "diabetes treatment", an unpartitioned vector database might return high-similarity chunks belonging to a completely different patient.
+
+MedIntel implements a multi-tenant vector architecture combining relational metadata with vector index filtering:
+
+1. **Deterministic Metadata Partitioning:**
+   - Every document chunk ingested into ChromaDB is tagged with immutable metadata: `{"source": file.filename, "patient_id": patient_id}`.
+   - When the LLM calls the retrieval tool, the current `patientId` is enforced at the query boundary using ChromaDB's boolean filter: `where={"patient_id": request.patient_id}`.
+   - The vector similarity search is mathematically restricted *only* to vectors associated with that specific patient ID, making cross-patient data retrieval mathematically impossible.
+
+2. **Chunk ID Namespacing:**
+   - Document chunks are assigned namespaced identifiers: `patient_{patient_id}_{filename}_chunk_{index}`.
+   - This ensures that if two patients upload files with identical standard clinical names (e.g., `blood_test.pdf`), their chunk representations never overwrite or collide within the vector store.
+
+3. **Dual-Database Synchronization:**
+   - **PostgreSQL (ACID Relational Source of Truth):** Tracks the existence, ownership, timestamps, and foreign key relationships of uploaded medical documents (`Document` model).
+   - **ChromaDB (Vector Engine):** Stores high-dimensional numerical embeddings (`gemini-embedding-001`, 3072 dimensions) and handles semantic text retrieval.
+   - Synchronizing both guarantees that the platform maintains clinical auditability in SQL while leveraging sub-second semantic retrieval in AI vector storage.
+
+4. **Source Attribution & Grounding:**
+   - Retrieved context strings are prefixed with explicit document headers (`[Source: filename.pdf]`).
+   - This grounds the LLM to cite specific diagnostic reports (e.g., echocardiogram vs allergy panel) when answering clinical inquiries, eliminating ungrounded assertions.
+

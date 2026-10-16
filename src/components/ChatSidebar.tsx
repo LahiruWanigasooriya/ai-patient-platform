@@ -1,31 +1,59 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import type { UIMessage } from "ai";
-import { useState, useRef } from "react";
-import { PaperClipIcon, CloudIcon, CalculatorIcon, DocumentMagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useState, useRef, useEffect } from "react";
+import { PaperClipIcon, CloudIcon, CalculatorIcon, DocumentMagnifyingGlassIcon, XMarkIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Patient, Document as PatientDocument } from "@prisma/client";
+import { addPatientDocument } from "@/app/actions/patients";
 
-export function ChatSidebar() {
+export type PatientWithDocs = Patient & {
+  documents?: PatientDocument[];
+};
+
+interface ChatSidebarProps {
+  patientId?: number | null;
+  patient?: PatientWithDocs | null;
+  onClose?: () => void;
+  onDocumentUploaded?: () => void;
+}
+
+export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }: ChatSidebarProps) {
   const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      body: { patientId },
+    }),
     messages: [
       {
         id: "initial",
         role: "assistant",
-        parts: [{ type: "text", text: "Hello! I am your AI assistant for this patient. How can I help you today?" }],
+        parts: [{ 
+          type: "text", 
+          text: patient 
+            ? `Hello! I am your AI clinical assistant for **${patient.name}** (Age ${patient.age}, Status: ${patient.status}). How can I assist you with this patient's case today?` 
+            : "Hello! I am your AI assistant for this patient. How can I help you today?" 
+        }],
       } as UIMessage,
     ],
   });
 
   const [input, setInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [documents, setDocuments] = useState<string[]>(patient?.documents?.map(d => d.fileName) || []);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (patient?.documents) {
+      setDocuments(patient.documents.map(d => d.fileName));
+    }
+  }, [patient]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isUploading) return;
-    sendMessage({ text: input });
+    sendMessage({ text: input }, { body: { patientId } });
     setInput("");
   };
 
@@ -41,6 +69,9 @@ export function ChatSidebar() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
+    if (patientId) {
+      formData.append("patient_id", patientId.toString());
+    }
 
     try {
       const response = await fetch("http://localhost:8000/api/upload", {
@@ -54,11 +85,20 @@ export function ChatSidebar() {
       
       const data = await response.json();
       console.log("Upload successful:", data);
+
+      // Record in PostgreSQL document table
+      if (patientId) {
+        await addPatientDocument(patientId, file.name);
+        setDocuments(prev => [file.name, ...prev]);
+        if (onDocumentUploaded) {
+          onDocumentUploaded();
+        }
+      }
       
       // Let the LLM know the file was uploaded successfully
       sendMessage({ 
-        text: `[System Update]: I just uploaded a new PDF titled '${file.name}'. It was successfully chunked into ${data.chunks_created} parts and embedded in the database. You may now refer to it.` 
-      });
+        text: `[System Update]: I just uploaded a new clinical PDF titled '${file.name}'. It was successfully chunked into ${data.chunks_created} parts and embedded in ChromaDB strictly for Patient #${patientId} (${patient?.name || "current patient"}). You may now search this document.` 
+      }, { body: { patientId } });
 
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -75,11 +115,69 @@ export function ChatSidebar() {
   return (
     <div className="flex flex-col h-full w-full max-w-md bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800">
       {/* Header */}
-      <header className="p-4 border-b bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm flex-shrink-0">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-          Patient AI Assistant
-        </h2>
+      <header className="p-4 border-b bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm flex items-center justify-between flex-shrink-0">
+        <div className="flex flex-col">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">
+              {patient ? patient.name : "Patient AI Assistant"}
+            </h2>
+            {patient && (
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                patient.status === 'Critical' ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400' :
+                patient.status === 'Stable' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' :
+                'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-400'
+              }`}>
+                {patient.status}
+              </span>
+            )}
+          </div>
+          {patient && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Age: {patient.age} • ID: #{patient.id}0084
+            </p>
+          )}
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            aria-label="Close Sidebar"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        )}
       </header>
+
+      {/* Subheader: Active Indexed Documents for this Patient */}
+      <div className="px-4 py-2 bg-emerald-50/70 dark:bg-emerald-950/20 border-b border-emerald-100 dark:border-emerald-900/40 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+        <div className="flex items-center space-x-1.5 overflow-hidden">
+          <DocumentTextIcon className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span className="font-semibold truncate">
+            {documents.length > 0 
+              ? `${documents.length} Medical Record${documents.length > 1 ? 's' : ''} Linked`
+              : "No Records Uploaded Yet"}
+          </span>
+        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-md shadow-xs border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 transition cursor-pointer"
+        >
+          {isUploading ? "Uploading..." : "+ Upload PDF"}
+        </button>
+      </div>
+
+      {/* Document Chips */}
+      {documents.length > 0 && (
+        <div className="px-4 py-1.5 bg-gray-50/90 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+          {documents.map((doc, idx) => (
+            <span key={idx} className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-xs">
+              <DocumentTextIcon className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+              <span className="truncate max-w-[120px]">{doc}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Chat History */}
       <main className="flex-1 overflow-y-auto p-4 space-y-4">

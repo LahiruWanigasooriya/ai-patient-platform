@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { streamText, createUIMessageStreamResponse, toUIMessageStream, convertToModelMessages, tool, isStepCount } from "ai";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -12,35 +13,77 @@ export async function POST(req: Request) {
     
     // Ensure messages is always an array
     const messages = body.messages || (Array.isArray(body) ? body : [body]);
+    const patientId = body.patientId ? Number(body.patientId) : null;
+
+    let patientContext = "";
+    if (patientId) {
+      const patient = await prisma.patient.findUnique({
+        where: { id: patientId },
+        include: { documents: true }
+      });
+      if (patient) {
+        const docsList = patient.documents.length > 0 
+          ? patient.documents.map(d => d.fileName).join(", ") 
+          : "None uploaded yet";
+
+        patientContext = `\n\nCURRENT PATIENT CONTEXT:
+- Patient Name: ${patient.name}
+- Age: ${patient.age}
+- Status: ${patient.status}
+- Clinical Summary: ${patient.summary}
+- Indexed Medical Records: ${docsList}`;
+      }
+    }
+
+    const systemPrompt = `You are an expert AI clinical assistant for MedIntel, assisting medical staff with patient care.
+${patientContext ? patientContext : "No specific patient selected. You are providing general clinical assistance."}
+
+Instructions:
+1. When answering questions, reference this specific patient's details when relevant.
+2. If the user asks a question that might be answered by this patient's uploaded medical records or lab reports, you MUST call the searchDocuments tool and provide a specific, targeted search query in the 'query' argument (e.g. {"query": "ejection fraction"} or {"query": "penicillin allergy"}).
+3. Use the calculator tool for precise medical dosage or metric calculations.
+4. Always maintain high clinical precision, professionalism, and clarity.`;
 
     // Call the language model with tools
     const result = streamText({
-      model: google("gemini-3.5-flash-lite"),
-      system: "You are a helpful, autonomous AI assistant. You have access to tools that you can use to answer the user's request. If the user asks a question that might be answered by their uploaded PDFs, use the searchDocuments tool.",
+      model: google("gemini-2.5-flash"),
+      system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools: {
         searchDocuments: tool({
-          description: "Search the user's uploaded PDF documents for relevant information. Use this whenever the user asks a question about their files.",
+          description: "Search the uploaded medical records, lab reports, and clinical PDF documents for this specific patient. You must provide the search terms in the 'query' parameter.",
           parameters: z.object({
-            query: z.string().describe("The specific search query to find in the documents"),
+            query: z.string().describe("The specific search query to find in the patient's records, e.g. 'ejection fraction' or 'penicillin'"),
           }),
           // @ts-ignore: Bypass AI SDK version mismatch for execute type
           execute: async (rawArgs: any): Promise<string> => {
-            const actualArgs = rawArgs.query ? rawArgs : (rawArgs.args || rawArgs);
-            const { query } = actualArgs;
+            const actualArgs = rawArgs?.query ? rawArgs : (rawArgs?.args || rawArgs || {});
+            let query = actualArgs.query;
+            
+            // Robust fallback if LLM omitted the query parameter
+            if (!query || typeof query !== "string") {
+              const lastMsg = messages[messages.length - 1];
+              if (lastMsg) {
+                if (typeof lastMsg.content === "string") query = lastMsg.content;
+                else if (Array.isArray(lastMsg.parts)) {
+                  const textPart = lastMsg.parts.find((p: any) => p.type === "text");
+                  query = textPart?.text || "patient medical record";
+                }
+              }
+            }
             console.log(`[Tool] searchDocuments args raw:`, rawArgs);
-            console.log(`[Tool] Searching documents for: ${query}`);
+            console.log(`[Tool] Searching documents for patient ${patientId}: '${query}'`);
             try {
               const retrieveRes = await fetch("http://127.0.0.1:8000/api/retrieve", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: query, n_results: 3 }),
+                body: JSON.stringify({ query: query, n_results: 3, patient_id: patientId }),
               });
               const retrieveData = await retrieveRes.json();
               if (retrieveData.results && retrieveData.results.length > 0) {
                 return retrieveData.results.join("\n\n---\n\n");
               }
-              return "No relevant information found in the documents.";
+              return "No relevant information found in this patient's documents.";
             } catch (err) {
               console.error("Failed to retrieve context from FastAPI:", err);
               return "Error searching documents. The backend might be down.";

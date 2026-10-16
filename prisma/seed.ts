@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgresql@localhost:5432/medintel';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgresql@localhost:5458/medintel';
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });

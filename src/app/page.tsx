@@ -2,18 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { ChatSidebar } from "@/components/ChatSidebar";
+import { ChatSidebar, PatientWithDocs } from "@/components/ChatSidebar";
 import { MagnifyingGlassIcon, UserCircleIcon, DocumentTextIcon, ChartBarIcon, ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { Patient } from "@prisma/client";
 import { getPatients } from "./actions/patients";
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<PatientWithDocs[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const refreshPatients = () => {
+    getPatients().then(data => {
+      setPatients(data);
+    });
+  };
 
   useEffect(() => {
     if (session) {
@@ -185,9 +190,13 @@ export default function Dashboard() {
                   
                   {/* Card Footer */}
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center">
-                      <DocumentTextIcon className="w-4 h-4 mr-1" />
-                      Updated {new Date(patient.updatedAt).toLocaleDateString()}
+                    <div className="flex items-center space-x-1.5">
+                      <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
+                        <DocumentTextIcon className="w-4 h-4 mr-1 text-emerald-500" />
+                        {patient.documents?.length || 0} Records
+                      </div>
+                      <span>•</span>
+                      <span>{new Date(patient.updatedAt).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center text-emerald-600 font-medium">
                       Open AI Assistant &rarr;
@@ -204,17 +213,13 @@ export default function Dashboard() {
       <div className={`transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 z-30 ${selectedPatient ? 'w-[400px] translate-x-0' : 'w-0 translate-x-full border-none'}`}>
         <div className="h-full w-[400px]">
           {selectedPatient && (
-            <div className="h-full flex flex-col relative">
-              {/* Overlay close button */}
-              <button 
-                onClick={() => setSelectedPatient(null)}
-                className="absolute top-4 right-4 z-50 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-sm"
-              >
-                &times;
-              </button>
-              {/* Pass the patient data down to the ChatSidebar if needed, but for now we render it identically */}
-              <ChatSidebar />
-            </div>
+            <ChatSidebar 
+              key={selectedPatient}
+              patientId={selectedPatient}
+              patient={patients.find(p => p.id === selectedPatient) || null}
+              onClose={() => setSelectedPatient(null)}
+              onDocumentUploaded={refreshPatients}
+            />
           )}
         </div>
       </div>

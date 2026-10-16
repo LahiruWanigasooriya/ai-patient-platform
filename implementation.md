@@ -78,23 +78,62 @@ We implemented a robust persistence layer and authentication framework to transi
 
 ---
 
-## Epic 2: The Data Layer & Dashboard Integration (Upcoming)
+## Epic 2: The Data Layer & Dashboard Integration (Completed)
 
-*This epic will cover replacing the hardcoded frontend data with live Prisma database queries.*
+*Successfully replaced hardcoded frontend mockup data with live PostgreSQL queries and bridged the dashboard with the AI Assistant for patient-specific context awareness.*
 
-**Planned Steps:**
-- Establish server-side Prisma calls in `page.tsx` to fetch the authenticated doctor's patients.
-- Remove the `DUMMY_PATIENTS` array and replace it with real PostgreSQL data.
-- Ensure the selected patient's ID is properly passed to the `<ChatSidebar>` component.
+**Completed Steps:**
+1. **Server-Side Prisma Queries:**
+   - Implemented `src/app/actions/patients.ts` with Next.js Server Actions using a cached Prisma singleton client (`src/lib/prisma.ts`).
+   - Automatically scopes queried patients to the currently authenticated doctor's session email.
+2. **Dashboard Dynamic Rendering & Skeleton UI:**
+   - Removed the static `DUMMY_PATIENTS` array from `src/app/page.tsx`.
+   - Added animated, pulsating loading skeleton cards to provide a smooth, premium loading state while Prisma fetches from PostgreSQL.
+3. **Component Prop Passing & Context Isolation:**
+   - Modified `<ChatSidebar>` signature in `src/components/ChatSidebar.tsx` to accept `patientId`, `patient`, and `onClose`.
+   - Wired `key={selectedPatient}` on `<ChatSidebar>` so selecting a different patient immediately unmounts previous message history and re-initializes a fresh, patient-specific conversation.
+   - Updated the ChatSidebar header to display the active patient's name, age, ID, and color-coded status badge (Critical / Stable / Review), plus an integrated close button.
+4. **Vercel AI SDK Transport & System Prompt Injection:**
+   - Configured `DefaultChatTransport` with `{ body: { patientId } }` in `useChat`.
+   - Updated `src/app/api/chat/route.ts` to extract `patientId` from request payloads, query PostgreSQL for the patient's record, and dynamically inject the clinical details (Name, Age, Status, Medical Summary) into the Gemini 2.5 Flash system prompt.
+   - Verified that the AI Assistant reliably differentiates between patients and provides tailored clinical responses without prompt leakage.
 
 ---
 
-## Epic 3: Multi-Tenant RAG & AI Upgrades (Future)
+## Epic 3: Multi-Tenant RAG & AI Upgrades (Completed)
 
-*This epic will cover the complex integration of the relational database with the AI vector database (ChromaDB).*
+*Successfully bridged the PostgreSQL relational database with the ChromaDB vector database, implementing strict multi-tenant clinical partitioning and automated document tracking.*
+
+**Completed Steps:**
+1. **Multi-Tenant Vector Ingestion (`backend/main.py`):**
+   - Updated the FastAPI `/api/upload` endpoint to accept `patient_id: Optional[int] = Form(None)`.
+   - Namespaced chunk IDs with `patient_{patient_id}_` to avoid chunk collision when different patients upload documents with identical filenames.
+   - Attached `{"source": file.filename, "patient_id": patient_id}` metadata to each chunk embedded with `gemini-embedding-001`.
+2. **Relational Document Tracking (`src/app/actions/patients.ts`):**
+   - Implemented `addPatientDocument(patientId, fileName)` and `getPatientDocuments(patientId)` Server Actions.
+   - Automatically writes a record to the PostgreSQL `Document` table linked to the `Patient` via foreign key whenever a clinical PDF is uploaded.
+   - Automatically touches the patient's `updatedAt` timestamp so the dashboard reflects recent record activity.
+3. **Interactive UI & Real-Time Record Badging:**
+   - Enriched `<ChatSidebar />` with an active "Linked Medical Records" bar showing live counts, chips of indexed files, and a quick "+ Upload PDF" button.
+   - Linked document upload completion to the parent dashboard via `onDocumentUploaded` callback in `src/app/page.tsx`, updating live record counters on patient cards without page refresh.
+4. **Partitioned Semantic Retrieval (`backend/main.py`):**
+   - Enhanced `/api/retrieve` to accept `patient_id: Optional[int]` and enforce ChromaDB metadata filtering: `where={"patient_id": request.patient_id}`.
+   - Formats matched document chunks with explicit source citations (`[Source: filename.pdf]: content`) for clinical attribution.
+5. **Vercel AI SDK Tool Integration (`src/app/api/chat/route.ts`):**
+   - Updated `searchDocuments` tool to pass `patient_id: patientId` directly to the FastAPI `/api/retrieve` endpoint.
+   - Injected indexed document filenames directly into the Gemini 2.5 Flash system prompt context, enabling the model to know what reports exist before tool invocation.
+   - Added robust query fallback to ensure search terms are never lost if the LLM omits the parameter.
+6. **Multi-Tenant Boundary Verification:**
+   - Validated end-to-end with real PDF uploads for John Doe (Echocardiogram) and Jane Smith (Allergy Panel).
+   - Confirmed zero cross-patient data leakage: Jane Smith's queries have no access to John Doe's ejection fraction, and John Doe has no access to Jane Smith's penicillin allergy contraindications.
+
+---
+
+## Epic 4: Advanced Generative UI, Analytics & Clinical Reporting (Upcoming)
+
+*This epic will focus on rich interactive clinical visualizations, patient analytics, and automated discharge summaries.*
 
 **Planned Steps:**
-- Create an upload mechanism for medical PDFs via the Next.js frontend.
-- Send the PDF to the FastAPI backend, process it, and generate vector embeddings.
-- Store the embeddings in ChromaDB, and save the metadata (Document ID, Patient ID) in PostgreSQL.
-- Update the Vercel AI SDK tools (`searchDocuments`) to accept a `patientId` parameter, ensuring the LLM can only query ChromaDB for documents belonging to the currently selected patient.
+- Create dynamic Generative UI widgets for lab results (e.g., blood pressure dials, allergy warning cards, ECG waveform previews).
+- Add an Analytics tab visualizing patient cohort metrics (Critical vs Stable ratio, recent admissions).
+- Implement an automated "Generate Clinical Summary" agentic workflow exporting signed medical summaries as downloadable PDFs.
