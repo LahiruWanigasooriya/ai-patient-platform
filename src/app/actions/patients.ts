@@ -61,3 +61,37 @@ export async function getPatientDocuments(patientId: number) {
   });
 }
 
+export async function createPatient(data: {
+  name: string;
+  age: number;
+  status: string;
+  summary: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+
+  if (!user) {
+    throw new Error("Doctor profile not found.");
+  }
+
+  return await prisma.patient.create({
+    data: {
+      name: data.name,
+      age: Number(data.age),
+      status: data.status,
+      summary: data.summary,
+      doctorId: user.id,
+    },
+    include: {
+      documents: true,
+    },
+  });
+}
+
+

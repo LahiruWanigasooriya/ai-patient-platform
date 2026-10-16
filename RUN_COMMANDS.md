@@ -82,6 +82,49 @@ To access your patients and test the AI features:
 
 ---
 
+### Test E: Cohort Analytics Dashboard (Epic 4)
+1. On the top navigation bar, click **"Cohort Analytics"**.
+2. Observe the population health metrics:
+   - **4 Core KPI Cards:** Total Cohort Size, Critical Acuity Rate (%), Indexed Diagnostic Records, and Mean Cohort Age.
+   - **Segmented Acuity Progress Bar:** Visual 100% normalized distribution across Critical, Review, and Stable cohorts.
+   - **Interactive Acuity Cards:** Click on **"View Critical Patients &rarr;"** to automatically jump back to the patient roster filtered by Critical status.
+   - **Age Distribution & Diagnostic Coverage:** Stratified view across young adults, adults, and seniors, with live ChromaDB vector indexing counters.
+
+---
+
+### Test F: Dynamic Patient Admission (Epic 4)
+1. Click the **"+ Admit Patient"** button (available in the navbar or above the patient roster).
+2. The modal dialog opens:
+   - Enter Full Name: e.g. `Arthur Pendelton`
+   - Enter Age: `67`
+   - Select Triage Acuity: `Critical`
+   - Enter Clinical History: `Acute onset chest tightness; ST segment elevation noted on emergency triage ECG.`
+3. Click **"Register Patient"**.
+4. The patient is instantly saved to PostgreSQL, the roster refreshes, and the Cohort Analytics telemetry updates in real-time.
+
+---
+
+### Test G: Interactive Generative UI Clinical Tools (Epic 4)
+1. Select any patient card (e.g. **John Doe** or **Eleanor Vance**).
+2. **Evaluate Vitals Tool:**
+   - In the chat input, type:
+     > *"The patient's current blood pressure is 168/102 mmHg with heart rate 82 bpm. Please evaluate vitals."*
+   - Watch the AI autonomously call `evaluateVitals` and render the **Vitals Assessment Generative UI Card**:
+     - Visual Stage 2 Hypertension / High severity badge.
+     - Calculated **Mean Arterial Pressure (MAP: 124 mmHg)** and **Pulse Pressure (66 mmHg)**.
+     - Clinical pharmacotherapy guidance.
+3. **Generate Clinical Summary Tool:**
+   - Type in the chat:
+     > *"Compile and generate an official clinical consultation summary report for this patient."*
+   - Watch the AI call `generateClinicalSummary` and render the **Clinical Consultation Note Card**:
+     - Patient legal name, consultation date, and title.
+     - Formatted diagnostic bullet points.
+     - Prescribed medication badges (💊 Rx).
+     - Follow-up monitoring plan.
+     - Click the **"Print"** button to trigger the browser's native print / save as PDF dialog.
+
+---
+
 ## 3. How to Start Services Manually (If Ever Stopped)
 
 If you reboot your machine or close the terminals, run these 3 commands:

@@ -71,3 +71,49 @@ MedIntel implements a multi-tenant vector architecture combining relational meta
    - Retrieved context strings are prefixed with explicit document headers (`[Source: filename.pdf]`).
    - This grounds the LLM to cite specific diagnostic reports (e.g., echocardiogram vs allergy panel) when answering clinical inquiries, eliminating ungrounded assertions.
 
+## 9. Generative UI in Clinical Decision Support Systems (CDSS)
+Traditional medical AI interfaces present answers as raw, unstructured markdown text. In high-acuity clinical environments, parsing paragraphs of text introduces dangerous cognitive load, misinterpretation risks, and clinical transcription delays.
+
+**Generative UI** transforms the LLM from a passive conversationalist into an interactive software generator:
+
+1. **Deterministic Calculation vs. Probabilistic LLM Arithmetic:**
+   - LLMs operate via probabilistic token prediction and frequently hallucinate numerical operations.
+   - In MedIntel, clinical arithmetic is completely removed from the LLM and offloaded to deterministic TypeScript tool functions (`evaluateVitals`, `calculator`).
+   - **Mean Arterial Pressure (MAP):** Evaluates organ perfusion pressure:
+     $$MAP = \frac{2 \times \text{Diastolic} + \text{Systolic}}{3}$$
+     A MAP $< 65 \text{ mmHg}$ indicates inadequate tissue perfusion and shock risk.
+   - **Pulse Pressure (PP):** Measures arterial compliance and stiffness:
+     $$PP = \text{Systolic} - \text{Diastolic}$$
+     Elevated pulse pressure ($> 60 \text{ mmHg}$) correlates with increased cardiovascular mortality.
+   - **AHA/ACC Hypertension Staging:** Evaluates blood pressure against established clinical guideline boundaries:
+     - *Normal:* $<120 \text{ and } <80 \text{ mmHg}$
+     - *Elevated:* $120\text{--}129 \text{ and } <80 \text{ mmHg}$
+     - *Stage 1 Hypertension:* $130\text{--}139 \text{ or } 80\text{--}89 \text{ mmHg}$
+     - *Stage 2 Hypertension:* $\ge 140 \text{ or } \ge 90 \text{ mmHg}$
+     - *Hypertensive Crisis:* $\ge 180 \text{ or } \ge 120 \text{ mmHg}$
+
+2. **State-Driven Micro-Component Rendering:**
+   - The Vercel AI SDK streams granular step transitions (`tool-input-start`, `tool-call`, `tool-result`).
+   - The client-side `<ChatSidebar />` intercepts `output-available` events and mounts reactive React cards.
+   - Visual cues (pulsing red crisis badges, amber warning borders, and emerald target indicators) allow physicians to assess physiological severity in milliseconds without reading prose.
+
+3. **Structured Consultation Note Generation:**
+   - Unstructured doctor-patient discussions are structured by the model into typed parameters (Diagnoses, Prescriptions, Follow-Up Instructions).
+   - The frontend renders an official consultation note equipped with client-side printing hooks (`window.print()`), enabling immediate physical record archival or electronic health record (EHR) export.
+
+## 10. Population Health Telemetry & Cohort Acuity Stratification
+In modern healthcare informatics, individual patient review must be complemented by aggregate population surveillance. MedIntel bridges individual patient RAG with cohort-level telemetry:
+
+1. **Acuity & Triage Telemetry:**
+   - Tracks the ratio of active admissions requiring critical surveillance:
+     $$\text{Critical Acuity Rate} = \left(\frac{N_{\text{critical}}}{N_{\text{total}}}\right) \times 100$$
+   - Segmented distribution bars visualize proportional ward load, alerting administrators to clinical capacity strains.
+
+2. **Demographic Risk Stratification:**
+   - Normalizes patient ages into clinical risk cohorts: Young Adult ($<35$), Adult ($35\text{--}55$), and Senior ($>55$).
+   - Enables clinical teams to cross-correlate hypertension stages and diagnostic record frequency against age baselines.
+
+3. **Vector Database Indexing Coverage:**
+   - Correlates the relational records in PostgreSQL against the vector embeddings in ChromaDB, highlighting patients who lack indexed diagnostic files to ensure comprehensive AI diagnostic coverage.
+
+

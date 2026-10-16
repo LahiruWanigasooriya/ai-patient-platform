@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useState, useRef, useEffect } from "react";
-import { PaperClipIcon, CloudIcon, CalculatorIcon, DocumentMagnifyingGlassIcon, XMarkIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { PaperClipIcon, CloudIcon, CalculatorIcon, DocumentMagnifyingGlassIcon, XMarkIcon, DocumentTextIcon, HeartIcon, DocumentCheckIcon, ExclamationTriangleIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Patient, Document as PatientDocument } from "@prisma/client";
@@ -246,11 +246,150 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
                     
+                    if (toolName === "evaluateVitals") {
+                      const v = output || {};
+                      const isCrisis = v.severity === "critical";
+                      const isHigh = v.severity === "high";
+                      const isModerate = v.severity === "moderate";
+
+                      const borderClass = isCrisis ? "border-red-500/80 bg-red-500/10" :
+                        isHigh ? "border-amber-500/80 bg-amber-500/10" :
+                        isModerate ? "border-yellow-500/80 bg-yellow-500/10" :
+                        "border-emerald-500/80 bg-emerald-500/10";
+
+                      const badgeClass = isCrisis ? "bg-red-600 text-white animate-pulse" :
+                        isHigh ? "bg-amber-600 text-white" :
+                        isModerate ? "bg-yellow-600 text-white" :
+                        "bg-emerald-600 text-white";
+
+                      return (
+                        <div key={index} className={`my-3 p-4 rounded-xl border ${borderClass} shadow-xs backdrop-blur-xs text-left w-full max-w-sm`}>
+                          <div className="flex items-center justify-between border-b border-gray-200/50 dark:border-gray-700/50 pb-2 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <HeartIcon className={`w-5 h-5 ${isCrisis || isHigh ? 'text-red-500' : 'text-emerald-500'}`} />
+                              <span className="font-bold text-xs uppercase tracking-wider text-gray-800 dark:text-gray-200">
+                                Vitals Assessment
+                              </span>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}`}>
+                              {v.category || "Evaluated"}
+                            </span>
+                          </div>
+
+                          {/* BP and Heart Rate Readout */}
+                          <div className="grid grid-cols-3 gap-2 text-center my-2">
+                            <div className="bg-white/80 dark:bg-gray-800/80 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold">Blood Pressure</div>
+                              <div className="text-base font-black text-gray-900 dark:text-white mt-0.5">
+                                {v.systolic}/{v.diastolic}
+                                <span className="text-[9px] font-normal text-gray-400 block">mmHg</span>
+                              </div>
+                            </div>
+                            <div className="bg-white/80 dark:bg-gray-800/80 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold">Mean Arterial</div>
+                              <div className="text-base font-black text-gray-900 dark:text-white mt-0.5">
+                                {v.map}
+                                <span className="text-[9px] font-normal text-gray-400 block">MAP</span>
+                              </div>
+                            </div>
+                            <div className="bg-white/80 dark:bg-gray-800/80 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold">Pulse Pressure</div>
+                              <div className="text-base font-black text-gray-900 dark:text-white mt-0.5">
+                                {v.pulsePressure}
+                                <span className="text-[9px] font-normal text-gray-400 block">mmHg</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Recommendation Box */}
+                          {v.recommendation && (
+                            <div className="mt-3 p-2.5 bg-white/60 dark:bg-gray-800/60 rounded-lg text-xs text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 flex items-start space-x-2">
+                              <ExclamationTriangleIcon className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                              <div className="leading-relaxed">
+                                <span className="font-semibold text-gray-900 dark:text-white">Guidance: </span>
+                                {v.recommendation}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    if (toolName === "generateClinicalSummary") {
+                      const rep = output || {};
+                      return (
+                        <div key={index} className="my-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50/80 to-white dark:from-indigo-950/30 dark:to-gray-900 shadow-sm text-left w-full max-w-sm">
+                          <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-800/40 pb-2 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <DocumentCheckIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                              <div>
+                                <h4 className="font-bold text-xs text-gray-900 dark:text-white leading-tight">
+                                  {rep.summaryTitle || "Clinical Consultation Note"}
+                                </h4>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                  {rep.patientName} • {rep.date}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.print()}
+                              className="inline-flex items-center space-x-1 px-2 py-1 rounded-md text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 shadow-2xs transition cursor-pointer"
+                              title="Print or Save as PDF"
+                            >
+                              <PrinterIcon className="w-3 h-3" />
+                              <span>Print</span>
+                            </button>
+                          </div>
+
+                          {/* Key Findings */}
+                          {rep.keyFindings && rep.keyFindings.length > 0 && (
+                            <div className="mb-2">
+                              <div className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                Clinical Diagnoses
+                              </div>
+                              <ul className="space-y-0.5 text-xs text-gray-700 dark:text-gray-300">
+                                {rep.keyFindings.map((finding: string, fi: number) => (
+                                  <li key={fi} className="flex items-start space-x-1.5">
+                                    <span className="text-indigo-500 font-bold">•</span>
+                                    <span>{finding}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Prescriptions */}
+                          {rep.prescriptions && rep.prescriptions.length > 0 && (
+                            <div className="mb-2 p-2 bg-white/70 dark:bg-gray-800/70 rounded-lg border border-indigo-50 dark:border-indigo-900/40">
+                              <div className="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider mb-1">
+                                Prescribed Medications (Rx)
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {rep.prescriptions.map((rx: string, ri: number) => (
+                                  <span key={ri} className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 font-medium">
+                                    💊 {rx}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Follow-up */}
+                          {rep.followUp && (
+                            <div className="text-[11px] text-gray-600 dark:text-gray-400 italic">
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 not-italic">Plan: </span>
+                              {rep.followUp}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     if (toolName === "searchDocuments") {
                       return (
-                        <div key={index} className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded w-fit border border-indigo-100 dark:border-indigo-800 my-2 text-xs">
-                           <DocumentMagnifyingGlassIcon className="w-3 h-3" />
-                           <span>Retrieved context for: "{input?.query}"</span>
+                        <div key={index} className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1.5 rounded-lg w-fit border border-indigo-100 dark:border-indigo-800 my-2 text-xs shadow-2xs">
+                           <DocumentMagnifyingGlassIcon className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                           <span className="truncate max-w-[220px]">Searched records for: "{input?.query}"</span>
                         </div>
                       );
                     }
