@@ -78,6 +78,7 @@ model Patient {
   doctor      User?     @relation(fields: [doctorId], references: [id])
   
   documents   Document[]
+  vitalReadings VitalReading[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -91,4 +92,19 @@ model Document {
   patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   
   createdAt   DateTime @default(now())
+}
+
+model VitalReading {
+  id          String   @id @default(cuid())
+  
+  patientId   Int
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  systolic    Int
+  diastolic   Int
+  heartRate   Int?
+  spo2        Int?     // Oxygen saturation %
+  recordedAt  DateTime @default(now())
+
+  @@index([patientId, recordedAt])
 }

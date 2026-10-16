@@ -19,8 +19,10 @@ The development of the platform is broken down into four distinct, sequential Ep
 
 - **Epic 0: Project Scaffolding & Porting (Completed):** Transitioning the proof-of-concept AI chatbot into a structured, Next.js 15 App Router architecture. Setting up the Vercel AI SDK Agentic Loop and separating the chat interface into a modular `<ChatSidebar>` component.
 - **Epic 1: Database & Authentication (Completed):** Implementing a robust data persistence layer using PostgreSQL and Prisma ORM. Securing the application by integrating NextAuth (Auth.js v5) with both Google and Credentials providers, and building a professional Pixabay-inspired login interface.
-- **Epic 2: The Data Layer & Dashboard Integration (Upcoming):** Hooking up the frontend to the database. Replacing all hardcoded dummy data with live Prisma queries, creating the dynamic Patient Grid, and finalizing the layout functionality.
-- **Epic 3: Multi-Tenant RAG & AI Upgrades (Future):** Linking the PostgreSQL database to the ChromaDB vector embeddings securely. Creating upload mechanisms for PDFs that automatically associate them with specific patients, ensuring the LLM's RAG context is perfectly filtered by patient ID.
+- **Epic 2: The Data Layer & Dashboard Integration (Completed):** Hooking up the frontend to the database. Replacing all hardcoded dummy data with live Prisma queries, creating the dynamic Patient Grid, and finalizing the layout functionality.
+- **Epic 3: Multi-Tenant RAG & AI Upgrades (Completed):** Linking the PostgreSQL database to the ChromaDB vector embeddings securely. Creating upload mechanisms for PDFs that automatically associate them with specific patients, ensuring the LLM's RAG context is perfectly filtered by patient ID.
+- **Epic 4: Advanced Generative UI, Analytics & Clinical Reporting (Completed):** Introducing interactive Generative UI clinical widgets, a population-level cohort analytics dashboard, dynamic patient admission workflows, and high-throughput agentic tool calling.
+- **Epic 5: Clinical Document Viewer, Pharmacological Safety Engine & Longitudinal Vitals Trending (Completed):** Adding in-app PDF & semantic chunk citation inspection, an agentic drug-drug interaction & allergy contraindication engine, and PostgreSQL-persisted longitudinal vitals curves.
 
 ---
 ## Epic 0: Project Scaffolding & Porting (Completed)
@@ -167,3 +169,40 @@ We implemented a robust persistence layer and authentication framework to transi
 
 4. **Agentic LLM Model Optimization:**
    - Standardized on `gemini-3.5-flash-lite` for high-throughput clinical inference, eliminating free-tier quota constraints while preserving rapid sub-second tool execution and multi-step agentic reasoning.
+
+---
+
+## Epic 5: Clinical Document Viewer, Pharmacological Safety Engine & Longitudinal Vitals Trending (Completed)
+
+*Successfully added in-app medical document inspection, an agentic drug-drug interaction (DDI) and allergy safety engine, and PostgreSQL-persisted longitudinal physiological trajectory curves.*
+
+**Completed Steps:**
+1. **In-App Medical PDF & Semantic Chunk Citation Inspector (`src/components/DocumentViewerModal.tsx` & `backend/main.py`):**
+   - **FastAPI Endpoints:**
+     - Updated `/api/upload` to store original PDF files under `backend/uploads/patient_{patient_id}/{filename}`.
+     - Implemented `GET /api/documents/{patient_id}/{filename}` for PDF viewing.
+     - Implemented `GET /api/documents/{patient_id}/{filename}/chunks` querying ChromaDB to return indexed text chunks, chunk IDs, and word counts.
+   - **`DocumentViewerModal` Component:**
+     - Allows physicians to click on any document chip in `<ChatSidebar />` or patient card to view the file.
+     - Dual view modes: **Semantic Chunks View** (displays numbered vector chunks with real-time text filter and "Analyze with AI" triggers) and **Synthesized Clinical View** (full clinical document report with print/PDF export).
+2. **Pharmacological Safety & Drug-Drug Interaction (DDI) Engine (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
+   - **`checkDrugInteractions` Tool:**
+     - Evaluates drug combinations against established clinical pharmacology contraindications:
+       - *Anticoagulants (Warfarin/DOACs) + NSAIDs:* High risk of fatal gastrointestinal hemorrhage due to dual platelet and coagulation suppression.
+       - *ACE Inhibitors + Potassium-Sparing Diuretics:* Extreme hyperkalemia risk and fatal arrhythmias.
+       - *SSRIs + Serotonergic Analgesics (Tramadol/MAOIs):* Life-threatening Serotonin Syndrome.
+       - *Beta-Blockers + Non-Dihydropyridine CCBs:* Profound bradycardia and AV block.
+       - *Fluoroquinolones + Systemic Corticosteroids:* Tendon necrosis and Achilles rupture.
+     - Automated allergy cross-reactivity surveillance (Penicillin anaphylaxis risk; Sulfa allergy Stevens-Johnson Syndrome).
+   - **Pharmacological Safety Alert Card:**
+     - Generative UI card featuring visual acuity badges (Critical Risk / Moderate Risk / Compatible), mechanism summaries, and recommended safer pharmacological alternatives (e.g. Acetaminophen).
+3. **Longitudinal Vitals Trajectory & Time-Series Modeling (`src/components/VitalsTrajectoryModal.tsx`, `prisma/schema.prisma` & `src/app/actions/patients.ts`):**
+   - **Relational Schema:**
+     - Added `VitalReading` model to PostgreSQL with `patientId`, `systolic`, `diastolic`, `heartRate`, `spo2`, and `recordedAt`.
+     - Seeded historical time-series vitals showing John Doe's escalating hypertensive curve (+20 mmHg over 5 days) vs Jane Smith's normotensive stability.
+   - **`VitalsTrajectoryModal` Component:**
+     - Interactive SVG hemodynamic curve charting Systolic and Diastolic pressures, Mean Arterial Pressure ($MAP$), and Heart Rate over time.
+     - Visual AHA threshold lines (140 mmHg crisis line, 120 mmHg target line) with shaded pressure area.
+     - Telemetry summary cards showing latest vitals, delta trend, and automated clinical surveillance guidance.
+     - Accessible from patient roster cards and the AI Chat sidebar.
+

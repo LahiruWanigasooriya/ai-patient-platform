@@ -17,6 +17,9 @@ export async function getPatients() {
         include: {
           documents: {
             orderBy: { createdAt: 'desc' }
+          },
+          vitalReadings: {
+            orderBy: { recordedAt: 'asc' }
           }
         },
         orderBy: { updatedAt: 'desc' }
@@ -90,7 +93,50 @@ export async function createPatient(data: {
     },
     include: {
       documents: true,
+      vitalReadings: true,
     },
+  });
+}
+
+export async function addVitalReading(patientId: number, data: {
+  systolic: number;
+  diastolic: number;
+  heartRate?: number | null;
+  spo2?: number | null;
+}) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const reading = await prisma.vitalReading.create({
+    data: {
+      patientId,
+      systolic: Math.round(data.systolic),
+      diastolic: Math.round(data.diastolic),
+      heartRate: data.heartRate ? Math.round(data.heartRate) : null,
+      spo2: data.spo2 ? Math.round(data.spo2) : null,
+    },
+  });
+
+  // Touch patient updatedAt
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { updatedAt: new Date() },
+  });
+
+  return reading;
+}
+
+export async function getPatientVitals(patientId: number) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  return await prisma.vitalReading.findMany({
+    where: { patientId },
+    orderBy: { recordedAt: 'asc' },
   });
 }
 

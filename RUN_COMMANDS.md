@@ -125,6 +125,49 @@ To access your patients and test the AI features:
 
 ---
 
+### Test H: In-App Medical Document Viewer & Semantic Chunk Inspector (Epic 5)
+1. On **John Doe's** card or inside his AI chat drawer:
+   - Notice the document chip `john_doe_echocardiogram.pdf`.
+   - Click directly on the document chip.
+2. The **In-App Medical Document Viewer** drawer opens:
+   - **Semantic Chunks Tab:** Displays all vectorized ChromaDB chunks with chunk IDs and word counts.
+   - **Search in Document:** Type *"hypertrophy"* or *"ejection"* to highlight matches in real-time.
+   - **Synthesized Clinical View Tab:** Displays the full clinical diagnostic report with print/PDF export.
+   - Click **"Analyze this chunk with AI"** to immediately query the LLM copilot about that specific finding.
+
+---
+
+### Test I: Pharmacological Drug-Drug Interaction (DDI) & Allergy Safety Check (Epic 5)
+1. Open the AI Assistant for **John Doe** or **Jane Smith**.
+2. In the chat input, type:
+   > *"Can I prescribe Warfarin and Ibuprofen together for this patient?"*
+3. The AI invokes the `checkDrugInteractions` tool and renders the **Drug Safety & DDI Review Generative UI Card**:
+   - Severity badge: **CRITICAL RISK** (Crimson red).
+   - Drug pair: `Anticoagulant (Warfarin/DOAC) ⇄ NSAID / Antiplatelet`.
+   - Biological mechanism: Synergistic platelet COX-1 inhibition and coagulation cascade suppression.
+   - Actionable substitution: Recommends Acetaminophen for pain relief.
+4. Now test **Allergy Cross-Reactivity**:
+   - For **Jane Smith** (who has a documented penicillin allergy), type:
+     > *"Can I prescribe Amoxicillin for Jane Smith?"*
+   - The safety engine flags an **Allergic Cross-Reactivity Alert** warning of Type I IgE-mediated anaphylactic shock and strictly contraindicates the prescription.
+
+---
+
+### Test J: Longitudinal Vitals Trajectory & Hemodynamic Curve (Epic 5)
+1. On **John Doe's** card (or inside his AI chat drawer header), click **"Curve"** or **"Vitals Trajectory"**.
+2. The **Longitudinal Vitals Trajectory Modal** opens:
+   - **Interactive SVG Hemodynamic Chart:** Displays John's 6-day blood pressure curve showing systolic escalation from 152 to 172 mmHg.
+   - **AHA Guideline Thresholds:** Dashed red line at 140 mmHg (Crisis) and green line at 120 mmHg (Target).
+   - **Mean Arterial Pressure (MAP) & Pulse Pressure curves:** Shaded dynamic pressure areas.
+   - **Automated Clinical Trajectory Analysis:** Live clinical assessment warning of vascular afterload strain.
+3. Next, check **Jane Smith's Curve**:
+   - Notice her normotensive, flat stability curve around 118/76 mmHg.
+4. **Dynamic Trajectory Updates:**
+   - In chat, evaluate vitals: *"The patient's BP is 175/108 mmHg with HR 92 bpm. Please evaluate vitals."*
+   - The reading is automatically persisted to PostgreSQL `VitalReading` table and immediately updates the patient's historical trajectory curve!
+
+---
+
 ## 3. How to Start Services Manually (If Ever Stopped)
 
 If you reboot your machine or close the terminals, run these 3 commands:

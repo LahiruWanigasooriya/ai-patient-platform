@@ -116,4 +116,31 @@ In modern healthcare informatics, individual patient review must be complemented
 3. **Vector Database Indexing Coverage:**
    - Correlates the relational records in PostgreSQL against the vector embeddings in ChromaDB, highlighting patients who lack indexed diagnostic files to ensure comprehensive AI diagnostic coverage.
 
+## 11. Pharmacological Contraindication Modeling & Knowledge Graphs
+In modern clinical medicine, polypharmacy is a leading cause of preventable adverse drug events (ADEs), hospital re-admissions, and mortality. When managing patients with complex co-morbidities (e.g., severe hypertension and diabetes), introducing new therapeutics carries severe risk:
+
+1. **Pharmacodynamic vs. Pharmacokinetic Interactions:**
+   - **Pharmacodynamic:** Direct synergistic or antagonistic actions on identical physiological pathways. For instance, combining an anticoagulant (Warfarin) with an NSAID (Ibuprofen) suppresses both the humoral clotting cascade (factors II, VII, IX, X) and platelet aggregation (COX-1 thromboxane $A_2$ synthesis), resulting in exponential GI bleeding risk.
+   - **Pharmacokinetic:** Alterations in absorption, distribution, metabolism, or excretion (ADME), often mediated through Cytochrome P450 (CYP) isoenzymes (e.g., CYP2C9, CYP3A4).
+2. **Deterministic Safety Guardrails in Agentic CDSS:**
+   - Pure generative LLMs cannot be trusted as solitary pharmacological safety arbiters due to stochastic token generation and subtle knowledge hallucination.
+   - MedIntel employs a hybrid architecture: deterministic clinical contraindication matrices identify established lethal combinations (Warfarin + NSAIDs, ACEi + Potassium-sparing diuretics, SSRI + Serotonergic opioids), while the LLM generates patient-personalized contextualization and alternative therapeutic regimens.
+3. **Immunological Allergy Cross-Reactivity:**
+   - Evaluates Type I IgE-mediated hypersensitivity risks. Penicillin allergic patients prescribed beta-lactams (Amoxicillin, Ampicillin) face anaphylactic shock. The safety engine flags these contraindications prior to order finalization.
+
+## 12. Longitudinal Physiological Time-Series Telemetry & Hemodynamic Curves
+A single blood pressure measurement represents an isolated physiological snapshot subject to transient situational artifacts (e.g., "white coat syndrome"). Clinical decision-making relies on **longitudinal trajectory velocity**:
+
+1. **Velocity of Physiological Drift ($\Delta V / \Delta t$):**
+   - Tracking whether systolic pressure is escalating over days provides early warning of target-organ damage (hypertensive encephalopathy, acute renal injury).
+   - MedIntel computes the delta ($\Delta = V_{\text{latest}} - V_{\text{baseline}}$) to quantify trajectory steepness.
+2. **Hemodynamic Mean Arterial Pressure ($MAP$) Modeling:**
+   - The platform dynamically maps $MAP$ alongside systolic and diastolic boundaries:
+     $$MAP = \text{Diastolic} + \frac{1}{3}(\text{Systolic} - \text{Diastolic})$$
+   - Sustained $MAP > 105 \text{ mmHg}$ reflects chronic systemic vascular resistance, whereas $MAP < 65 \text{ mmHg}$ threatens coronary and cerebral hypoperfusion.
+3. **In-App Grounding & The Verification Chain:**
+   - Generative UI displays synthesized answers, but clinical auditability demands inspecting the raw evidence.
+   - Linking semantic chunks in ChromaDB directly to the in-app document viewer establishes an unbroken chain of custody from original diagnostic report to AI insight, satisfying medico-legal provenance requirements.
+
+
 

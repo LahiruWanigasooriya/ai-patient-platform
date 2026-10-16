@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { ChatSidebar, PatientWithDocs } from "@/components/ChatSidebar";
 import { AddPatientModal } from "@/components/AddPatientModal";
+import { DocumentViewerModal } from "@/components/DocumentViewerModal";
+import { VitalsTrajectoryModal } from "@/components/VitalsTrajectoryModal";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -16,7 +18,10 @@ import {
   ClockIcon, 
   ArrowPathIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ArrowTrendingUpIcon,
+  ShieldExclamationIcon,
+  EyeIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { getPatients } from "./actions/patients";
@@ -30,6 +35,10 @@ export default function Dashboard() {
   const [patients, setPatients] = useState<PatientWithDocs[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
+
+  // Epic 5 Modals
+  const [viewingDoc, setViewingDoc] = useState<{ fileName: string; patientId: number; patientName: string } | null>(null);
+  const [trajectoryPatient, setTrajectoryPatient] = useState<PatientWithDocs | null>(null);
 
   const refreshPatients = () => {
     setLoading(true);
@@ -70,6 +79,7 @@ export default function Dashboard() {
   const stableRate = totalPatients > 0 ? Math.round((stableCount / totalPatients) * 100) : 0;
 
   const totalDocuments = patients.reduce((acc, p) => acc + (p.documents?.length || 0), 0);
+  const totalVitalsLogged = patients.reduce((acc, p) => acc + (p.vitalReadings?.length || 0), 0);
   const averageAge = totalPatients > 0 
     ? Math.round(patients.reduce((acc, p) => acc + p.age, 0) / totalPatients) 
     : 0;
@@ -189,7 +199,7 @@ export default function Dashboard() {
                   Stunning Patient Insights <br/> <span className="text-emerald-400 font-light">Powered by AI</span>
                 </h2>
                 <p className="text-gray-300 mb-6 text-sm md:text-base text-center max-w-xl z-10">
-                  Multi-tenant clinical records, partitioned vector RAG, and automated generative diagnostics.
+                  Multi-tenant clinical records, longitudinal vitals telemetry, and pharmacological safety intelligence.
                 </p>
                 
                 {/* Search Bar */}
@@ -222,7 +232,7 @@ export default function Dashboard() {
                   <div className="flex items-center space-x-3">
                     <ShieldCheckIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                     <p className="text-xs text-amber-900 dark:text-amber-200 font-medium">
-                      <strong>Clinical Decision Support Protocol:</strong> MedIntel utilizes partitioned ChromaDB vector spaces to isolate patient data. All generated insights must be cross-verified by licensed medical professionals.
+                      <strong>Clinical Decision Support Protocol:</strong> MedIntel features in-app PDF citation inspection, DDI drug interaction surveillance, and longitudinal physiological trajectory modeling. All insights must be cross-verified by licensed medical staff.
                     </p>
                   </div>
                 </div>
@@ -239,7 +249,7 @@ export default function Dashboard() {
                       </span>
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Select a patient profile to launch the AI diagnostic assistant and multi-tenant RAG copilot.
+                      Select a patient card to open the AI diagnostic copilot, view historical vitals curves, or inspect source PDF chunks.
                     </p>
                   </div>
                   
@@ -326,16 +336,45 @@ export default function Dashboard() {
                         </p>
                       </div>
                       
-                      {/* Card Footer */}
+                      {/* Card Footer with Vitals Trajectory & Document Viewer Triggers */}
                       <div className="bg-gray-50/70 dark:bg-gray-800/40 p-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
                         <div className="flex items-center space-x-2">
-                          <div className="flex items-center text-gray-700 dark:text-gray-300 font-medium">
-                            <DocumentTextIcon className="w-4 h-4 mr-1 text-emerald-500" />
-                            <span>{patient.documents?.length || 0} Records</span>
-                          </div>
+                          {patient.documents && patient.documents.length > 0 ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewingDoc({
+                                  fileName: patient.documents![0].fileName,
+                                  patientId: patient.id,
+                                  patientName: patient.name,
+                                });
+                              }}
+                              className="flex items-center text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
+                              title="Click to inspect PDF & ChromaDB citations"
+                            >
+                              <DocumentTextIcon className="w-4 h-4 mr-1 text-emerald-500" />
+                              <span>{patient.documents.length} Records</span>
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">0 Records</span>
+                          )}
+
                           <span>•</span>
-                          <span>{new Date(patient.updatedAt).toLocaleDateString()}</span>
+
+                          {/* Vitals Trajectory Trigger */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTrajectoryPatient(patient);
+                            }}
+                            className="flex items-center text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
+                            title="View longitudinal vitals trajectory curve"
+                          >
+                            <ArrowTrendingUpIcon className="w-3.5 h-3.5 mr-0.5" />
+                            <span>Curve</span>
+                          </button>
                         </div>
+
                         <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
                           <span>AI Chat &rarr;</span>
                         </div>
@@ -443,21 +482,21 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Average Cohort Age */}
+                {/* Vitals Telemetry Total */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-xs">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      Mean Cohort Age
+                      Logged Vitals Curves
                     </span>
                     <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
-                      <ClockIcon className="w-5 h-5" />
+                      <ArrowTrendingUpIcon className="w-5 h-5" />
                     </div>
                   </div>
                   <div className="text-3xl font-black text-gray-900 dark:text-white">
-                    {averageAge} <span className="text-sm font-normal text-gray-500">years</span>
+                    {totalVitalsLogged} <span className="text-sm font-normal text-gray-500">records</span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Demographic baseline for risk scoring
+                    Mean cohort age: {averageAge} yrs
                   </div>
                 </div>
               </div>
@@ -576,7 +615,6 @@ export default function Dashboard() {
                   </p>
 
                   <div className="space-y-4">
-                    {/* Young Adult */}
                     <div>
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <span className="text-gray-700 dark:text-gray-300">Young Adult (&lt; 35 yrs)</span>
@@ -590,7 +628,6 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Middle Adult */}
                     <div>
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <span className="text-gray-700 dark:text-gray-300">Adult (35 - 55 yrs)</span>
@@ -604,7 +641,6 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Geriatric / Senior */}
                     <div>
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <span className="text-gray-700 dark:text-gray-300">Senior (55+ yrs)</span>
@@ -626,17 +662,19 @@ export default function Dashboard() {
                     Diagnostic Records & Vector Telemetry
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    Patients with active multi-tenant RAG vector indexes in ChromaDB.
+                    Patients with active multi-tenant RAG vector indexes in ChromaDB. Click document icon to view chunks.
                   </p>
 
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                     {patients.map(p => (
                       <div 
                         key={p.id}
-                        onClick={() => { setSelectedPatient(p.id); }}
-                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition cursor-pointer border border-gray-100 dark:border-gray-800"
+                        className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition border border-gray-100 dark:border-gray-800"
                       >
-                        <div className="flex items-center space-x-3">
+                        <div 
+                          className="flex items-center space-x-3 cursor-pointer"
+                          onClick={() => { setSelectedPatient(p.id); }}
+                        >
                           <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center">
                             #{p.id}
                           </div>
@@ -651,14 +689,34 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                            (p.documents?.length || 0) > 0 
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' 
-                              : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                          }`}>
-                            {p.documents?.length || 0} PDF{(p.documents?.length || 0) === 1 ? '' : 's'}
-                          </span>
-                          <span className="text-xs text-emerald-600 font-bold">&rarr;</span>
+                          {p.documents && p.documents.length > 0 ? (
+                            <button
+                              onClick={() => {
+                                setViewingDoc({
+                                  fileName: p.documents![0].fileName,
+                                  patientId: p.id,
+                                  patientName: p.name,
+                                });
+                              }}
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 hover:bg-emerald-200 transition cursor-pointer flex items-center space-x-1"
+                              title="Click to view chunks"
+                            >
+                              <span>{p.documents.length} PDF{p.documents.length === 1 ? '' : 's'}</span>
+                              <EyeIcon className="w-3 h-3 ml-0.5" />
+                            </button>
+                          ) : (
+                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                              0 PDFs
+                            </span>
+                          )}
+
+                          <button
+                            onClick={() => setTrajectoryPatient(p)}
+                            className="p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
+                            title="View vitals trajectory"
+                          >
+                            <ArrowTrendingUpIcon className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -674,8 +732,8 @@ export default function Dashboard() {
       </div>
 
       {/* Right Sidebar (AI Chatbot) - Only visible when a patient is selected */}
-      <div className={`transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 z-30 ${selectedPatient ? 'w-[420px] translate-x-0' : 'w-0 translate-x-full border-none'}`}>
-        <div className="h-full w-[420px]">
+      <div className={`transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 z-30 ${selectedPatient ? 'w-[430px] translate-x-0' : 'w-0 translate-x-full border-none'}`}>
+        <div className="h-full w-[430px]">
           {selectedPatient && (
             <ChatSidebar 
               key={selectedPatient}
@@ -694,6 +752,33 @@ export default function Dashboard() {
         onClose={() => setIsAddPatientModalOpen(false)}
         onPatientCreated={refreshPatients}
       />
+
+      {/* In-App Document Viewer & Citation Inspector */}
+      {viewingDoc && (
+        <DocumentViewerModal
+          isOpen={!!viewingDoc}
+          onClose={() => setViewingDoc(null)}
+          fileName={viewingDoc.fileName}
+          patientId={viewingDoc.patientId}
+          patientName={viewingDoc.patientName}
+          onAskAI={() => {
+            setSelectedPatient(viewingDoc.patientId);
+            setViewingDoc(null);
+          }}
+        />
+      )}
+
+      {/* Longitudinal Vitals Trajectory Chart Modal */}
+      {trajectoryPatient && (
+        <VitalsTrajectoryModal
+          isOpen={!!trajectoryPatient}
+          onClose={() => setTrajectoryPatient(null)}
+          patientName={trajectoryPatient.name}
+          patientId={trajectoryPatient.id}
+          status={trajectoryPatient.status}
+          vitals={trajectoryPatient.vitalReadings || []}
+        />
+      )}
       
     </div>
   );

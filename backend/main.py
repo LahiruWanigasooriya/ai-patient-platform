@@ -57,6 +57,12 @@ app.add_middleware(
 async def health_check():
     return {"status": "ok", "message": "FastAPI backend is running!"}
 
+from fastapi.responses import FileResponse
+
+# Directory for storing raw uploaded PDFs
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 @app.post("/api/upload")
 async def upload_pdf(
     file: UploadFile = File(...),
@@ -68,6 +74,14 @@ async def upload_pdf(
     try:
         # Read the file content into memory
         contents = await file.read()
+
+        # Persist raw PDF file to disk for in-app viewing
+        patient_folder = os.path.join(UPLOAD_DIR, f"patient_{patient_id}" if patient_id is not None else "common")
+        os.makedirs(patient_folder, exist_ok=True)
+        file_path = os.path.join(patient_folder, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(contents)
+
         pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
         
         extracted_text = ""
@@ -96,8 +110,7 @@ async def upload_pdf(
             for _ in range(len(chunks))
         ]
 
-        # Add to ChromaDB. The GoogleGenerativeAiEmbeddingFunction will automatically 
-        # call the Gemini API to embed these chunks behind the scenes!
+        # Add to ChromaDB.
         collection.add(
             documents=chunks,
             metadatas=metadatas,
@@ -110,11 +123,59 @@ async def upload_pdf(
             "patient_id": patient_id,
             "pages_processed": len(pdf_reader.pages),
             "chunks_created": len(chunks),
+            "file_stored": True,
             "chromadb_status": "Chunks successfully embedded and stored in Vector DB.",
             "first_chunk_preview": chunks[0][:200] + "..." if chunks else ""
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+
+@app.get("/api/documents/{patient_id}/{filename}")
+async def get_document(patient_id: int, filename: str):
+    """Serve the raw PDF file for in-app viewing."""
+    patient_folder = os.path.join(UPLOAD_DIR, f"patient_{patient_id}")
+    file_path = os.path.join(patient_folder, filename)
+    
+    # Also check parent directory fallbacks
+    if not os.path.exists(file_path):
+        root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", filename))
+        if os.path.exists(root_path):
+            file_path = root_path
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Document file not found on server.")
+    
+    return FileResponse(file_path, media_type="application/pdf", filename=filename)
+
+@app.get("/api/documents/{patient_id}/{filename}/chunks")
+async def get_document_chunks(patient_id: int, filename: str):
+    """Retrieve indexed ChromaDB chunks and metadata for a specific document."""
+    try:
+        results = collection.get(where={"patient_id": patient_id})
+        docs = results.get("documents", [])
+        metas = results.get("metadatas", [])
+        ids = results.get("ids", [])
+
+        matched_chunks = []
+        for doc_id, doc_text, meta in zip(ids, docs, metas):
+            if meta and meta.get("source") == filename:
+                matched_chunks.append({
+                    "id": doc_id,
+                    "text": doc_text,
+                    "wordCount": len(doc_text.split()),
+                    "source": filename
+                })
+
+        return {
+            "status": "success",
+            "patient_id": patient_id,
+            "filename": filename,
+            "total_chunks": len(matched_chunks),
+            "chunks": matched_chunks
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch chunks: {str(e)}")
+
 
 from pydantic import BaseModel
 

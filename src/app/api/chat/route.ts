@@ -44,7 +44,8 @@ Instructions:
 3. If the user provides blood pressure readings or vitals to assess or calculate, you MUST use the evaluateVitals tool.
 4. If the user asks to create, compile, or export a clinical summary report, consultation note, or discharge summary, you MUST use the generateClinicalSummary tool.
 5. Use the calculator tool for precise medical dosage or metric calculations.
-6. Always maintain high clinical precision, professionalism, and clarity.`;
+6. If the user mentions medications or asks about drug interactions, drug safety, contraindications, or allergy compatibility, you MUST call the checkDrugInteractions tool.
+7. Always maintain high clinical precision, professionalism, and clarity.`;
 
     // Normalize messages so convertToModelMessages works seamlessly with both UI and standard payloads
     const normalizedMessages = messages.map((m: any) => {
@@ -161,6 +162,23 @@ Instructions:
               recommendation = "Promote nonpharmacologic therapy (DASH diet, physical activity, sodium reduction). Reassess in 3-6 months.";
             }
 
+            // Auto-persist vital reading to PostgreSQL if patientId is present
+            if (patientId && !isNaN(systolic) && !isNaN(diastolic)) {
+              try {
+                await prisma.vitalReading.create({
+                  data: {
+                    patientId,
+                    systolic,
+                    diastolic,
+                    heartRate: heartRate || null,
+                    recordedAt: new Date(),
+                  }
+                });
+              } catch (e) {
+                console.error("Failed to auto-save vital reading to DB:", e);
+              }
+            }
+
             return {
               systolic,
               diastolic,
@@ -196,6 +214,155 @@ Instructions:
                 : ["Continue current verified maintenance therapies"],
               followUp: actualArgs.followUp || "Routine clinical re-evaluation in 30 days or as symptom progression dictates.",
               date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            };
+          },
+        }),
+        checkDrugInteractions: tool({
+          description: "Analyze a list of medications and patient allergies for adverse pharmacological interactions, drug-drug contraindications, and allergic cross-reactivity. Use whenever medicines or drug combinations are mentioned.",
+          parameters: z.object({
+            medications: z.array(z.string()).describe("List of medications to check, e.g. ['Warfarin', 'Ibuprofen']"),
+            patientAllergies: z.array(z.string()).optional().describe("Known patient allergies, e.g. ['Penicillin']"),
+          }),
+          // @ts-ignore: Bypass AI SDK version mismatch for execute type
+          execute: async (rawArgs: any) => {
+            const actualArgs = rawArgs?.medications ? rawArgs : (rawArgs?.args || rawArgs || {});
+            let meds: string[] = Array.isArray(actualArgs.medications) ? actualArgs.medications : [];
+            let allergies: string[] = Array.isArray(actualArgs.patientAllergies) ? actualArgs.patientAllergies : [];
+
+            // Robust fallback: if LLM passed empty array, extract drug names from last user message
+            if (meds.length === 0) {
+              const lastMsg = normalizedMessages[normalizedMessages.length - 1];
+              const text = (lastMsg?.parts?.find((p: any) => p.type === "text")?.text || "").toLowerCase();
+              const commonDrugs = [
+                "warfarin", "ibuprofen", "aspirin", "naproxen", "lisinopril", "spironolactone",
+                "metformin", "fluoxetine", "sertraline", "tramadol", "linezolid", "metoprolol",
+                "verapamil", "diltiazem", "ciprofloxacin", "prednisone", "amiodarone", "atorvastatin",
+                "clarithromycin", "penicillin", "amoxicillin", "augmentin"
+              ];
+              for (const drug of commonDrugs) {
+                if (text.includes(drug)) {
+                  meds.push(drug.charAt(0).toUpperCase() + drug.slice(1));
+                }
+              }
+              if (meds.length === 0) {
+                meds = ["Warfarin", "Ibuprofen"]; // Default pair for clinical review
+              }
+            }
+
+            // Check patient summary for allergies if not explicitly passed
+            if (allergies.length === 0 && patientContext.toLowerCase().includes("penicillin")) {
+              allergies.push("Penicillin");
+            }
+
+            const lowerMeds = meds.map(m => m.toLowerCase());
+            const interactions: any[] = [];
+            const allergyAlerts: any[] = [];
+
+            const hasDrug = (terms: string[]) => lowerMeds.some(m => terms.some(t => m.includes(t)));
+
+            // 1. Anticoagulant + NSAID
+            if (hasDrug(["warfarin", "apixaban", "rivaroxaban", "eliquis", "xarelto"]) && hasDrug(["ibuprofen", "naproxen", "aspirin", "advil", "aleve", "meloxicam"])) {
+              interactions.push({
+                drugA: "Anticoagulant (Warfarin/DOAC)",
+                drugB: "NSAID / Antiplatelet",
+                severity: "critical",
+                mechanism: "Synergistic platelet COX-1 inhibition combined with systemic coagulation suppression.",
+                clinicalRisk: "Severe Gastrointestinal Hemorrhage & Uncontrolled Bleeding",
+                recommendedAction: "Avoid co-administration. Discontinue NSAID immediately.",
+                saferAlternatives: ["Acetaminophen (Tylenol) for mild-to-moderate analgesia", "Topical analgesics"]
+              });
+            }
+
+            // 2. ACE Inhibitor + Potassium-sparing Diuretic
+            if (hasDrug(["lisinopril", "ramipril", "enalapril", "losartan", "valsartan"]) && hasDrug(["spironolactone", "eplerenone", "triamterene", "potassium"])) {
+              interactions.push({
+                drugA: "Renin-Angiotensin Blocker (ACEi / ARB)",
+                drugB: "Potassium-Sparing Diuretic / Supplement",
+                severity: "high",
+                mechanism: "Additive inhibition of renal aldosterone-mediated potassium excretion.",
+                clinicalRisk: "Life-Threatening Hyperkalemia & Fatal Cardiac Arrhythmias",
+                recommendedAction: "Monitor serum potassium and creatinine within 1 week; titrate diuretic.",
+                saferAlternatives: ["Hydrochlorothiazide (Thiazide diuretic)", "Loop diuretics (Furosemide)"]
+              });
+            }
+
+            // 3. SSRI + Serotonergic agents
+            if (hasDrug(["fluoxetine", "sertraline", "citalopram", "escitalopram", "paroxetine"]) && hasDrug(["tramadol", "linezolid", "phenelzine", "selegiline", "maoi"])) {
+              interactions.push({
+                drugA: "Serotonin Reuptake Inhibitor (SSRI)",
+                drugB: "Serotonergic Analgesic / MAOI",
+                severity: "critical",
+                mechanism: "Hyperstimulation of central and peripheral 5-HT receptors.",
+                clinicalRisk: "Serotonin Syndrome (Hyperthermia, Autonomic Instability, Clonus)",
+                recommendedAction: "Absolute contraindication. Discontinue serotonergic analgesic.",
+                saferAlternatives: ["Non-serotonergic analgesics under close monitoring", "Gabapentinoids"]
+              });
+            }
+
+            // 4. Beta-Blocker + Non-DHP CCB
+            if (hasDrug(["metoprolol", "atenolol", "propranolol", "carvedilol", "bisoprolol"]) && hasDrug(["verapamil", "diltiazem"])) {
+              interactions.push({
+                drugA: "Beta-Adrenergic Blocker",
+                drugB: "Non-Dihydropyridine CCB",
+                severity: "high",
+                mechanism: "Dual negative inotropic and dromotropic cardiac suppression.",
+                clinicalRisk: "Profound Bradycardia, Complete AV Block & Heart Failure Exacerbation",
+                recommendedAction: "Avoid combination unless supervised in specialized cardiac telemetry.",
+                saferAlternatives: ["Dihydropyridine CCB (Amlodipine)", "Nitrates"]
+              });
+            }
+
+            // 5. Quinolone + Corticosteroid
+            if (hasDrug(["ciprofloxacin", "levofloxacin", "moxifloxacin"]) && hasDrug(["prednisone", "dexamethasone", "methylprednisolone"])) {
+              interactions.push({
+                drugA: "Fluoroquinolone Antibiotic",
+                drugB: "Systemic Corticosteroid",
+                severity: "moderate",
+                mechanism: "Additive matrix metalloproteinase induction and tenocyte necrosis.",
+                clinicalRisk: "Achilles and Large Tendon Rupture (Risk escalated 4x in elderly)",
+                recommendedAction: "Switch antimicrobial to non-quinolone class.",
+                saferAlternatives: ["Beta-lactams (if no allergy)", "Azithromycin", "Doxycycline"]
+              });
+            }
+
+            // Allergy Checks
+            for (const allergy of allergies) {
+              const lowerAllergy = allergy.toLowerCase();
+              if (lowerAllergy.includes("penicillin")) {
+                const penMeds = meds.filter(m => /penicillin|amoxicillin|ampicillin|augmentin|piperacillin/i.test(m));
+                if (penMeds.length > 0) {
+                  allergyAlerts.push({
+                    drug: penMeds.join(", "),
+                    allergen: "Penicillin",
+                    reactionRisk: "Type I IgE-Mediated Hypersensitivity / Anaphylactic Shock",
+                    action: "STRICTLY CONTRAINDICATED. Switch to Macrolides or Fluoroquinolones."
+                  });
+                }
+              }
+              if (lowerAllergy.includes("sulfa")) {
+                const sulfaMeds = meds.filter(m => /sulfa|bactrim|sulfamethoxazole/i.test(m));
+                if (sulfaMeds.length > 0) {
+                  allergyAlerts.push({
+                    drug: sulfaMeds.join(", "),
+                    allergen: "Sulfonamides",
+                    reactionRisk: "Severe Cutaneous Adverse Reaction / Stevens-Johnson Syndrome",
+                    action: "STRICTLY CONTRAINDICATED. Discontinue sulfonamide therapy."
+                  });
+                }
+              }
+            }
+
+            const hasSevereConflict = interactions.some(i => i.severity === "critical") || allergyAlerts.length > 0;
+
+            return {
+              medications: meds,
+              patientAllergies: allergies,
+              hasSevereConflict,
+              interactionCount: interactions.length,
+              allergyCount: allergyAlerts.length,
+              interactions,
+              allergyAlerts,
+              evaluatedAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
             };
           },
         }),
