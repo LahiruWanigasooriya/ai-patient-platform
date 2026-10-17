@@ -22,7 +22,9 @@ import {
   PhotoIcon,
   MicrophoneIcon,
   CheckBadgeIcon,
-  BeakerIcon
+  BeakerIcon,
+  ArrowDownTrayIcon,
+  DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -33,6 +35,7 @@ import { VitalsTrajectoryModal } from "./VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "./ImageAnalysisModal";
 import { AmbientScribeModal } from "./AmbientScribeModal";
 import { ClinicalTrialsModal } from "./ClinicalTrialsModal";
+import { FhirExportModal } from "./FhirExportModal";
 
 export type TrialMatchWithTrial = TrialMatch & {
   trial: ClinicalTrial;
@@ -82,6 +85,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
   const [signedSoapNotes, setSignedSoapNotes] = useState<Record<string, boolean>>({});
   const [isTrialsOpen, setIsTrialsOpen] = useState(false);
   const [enrolledTrials, setEnrolledTrials] = useState<Record<string, boolean>>({});
+  const [isFhirModalOpen, setIsFhirModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -974,7 +978,95 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
 
-                    // 9. Search Documents Citation
+                    // 9. HL7 FHIR Interoperability Bundle Generative UI Card
+                    if (toolName === "exportFhirBundle") {
+                      const fhir = output || {};
+                      const counts = fhir.resourceCounts || {};
+
+                      return (
+                        <div key={index} className="my-3 p-4 rounded-xl bg-gradient-to-br from-gray-900 to-gray-950 border border-emerald-500/40 text-gray-100 shadow-xl shadow-emerald-950/20 text-xs">
+                          {/* Header */}
+                          <div className="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-lg bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                                <DocumentDuplicateIcon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white text-xs tracking-tight">
+                                  HL7® FHIR® R4 Interoperability Bundle
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {fhir.patientName || patient?.name} • US Core STU4 Release 4.0.1
+                                </span>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                              {fhir.totalResources || 0} Resources
+                            </span>
+                          </div>
+
+                          {/* Metadata Summary */}
+                          <div className="grid grid-cols-2 gap-2 mb-3 p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30 text-[11px]">
+                            <div>
+                              <span className="text-gray-400">Patient Identifier:</span>
+                              <p className="font-mono font-bold text-emerald-300">{fhir.mrn || `MED-${patientId}0084`}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Standard Profile:</span>
+                              <p className="font-mono text-gray-200 truncate">US Core / HL7 R4</p>
+                            </div>
+                          </div>
+
+                          {/* Resource Breakdown Pills */}
+                          <div className="mb-3">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                              Compiled Health Resources ({fhir.totalResources || 0}):
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                              <span className="px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
+                                <span>🧑 Patient Profile:</span>
+                                <strong className="text-white">1</strong>
+                              </span>
+                              <span className="px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
+                                <span>🩺 Observations:</span>
+                                <strong className="text-emerald-400">{counts.Observation || 0}</strong>
+                              </span>
+                              <span className="px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
+                                <span>🩻 Diagnostic Scans:</span>
+                                <strong className="text-cyan-400">{counts.DiagnosticReport || 0}</strong>
+                              </span>
+                              <span className="px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
+                                <span>📝 Clinical Notes:</span>
+                                <strong className="text-rose-400">{counts.DocumentReference || 0}</strong>
+                              </span>
+                              <span className="col-span-2 px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
+                                <span>🔬 Research Subjects:</span>
+                                <strong className="text-amber-400">{counts.ResearchSubject || 0} Trial Protocol(s)</strong>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Coding Standards Tag */}
+                          <div className="mb-3 text-[10px] text-gray-400 flex items-center space-x-1 font-mono">
+                            <span className="text-emerald-400 font-bold">LOINC:</span>
+                            <span className="truncate">85354-9 (BP), 18748-4 (Scans), 11506-3 (SOAP)</span>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-gray-800">
+                            <button
+                              onClick={() => setIsFhirModalOpen(true)}
+                              className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-emerald-950/40"
+                            >
+                              <DocumentDuplicateIcon className="w-4 h-4" />
+                              <span>Inspect FHIR Bundle & Download</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // 10. Search Documents Citation
                     if (toolName === "searchDocuments") {
                       return (
                         <div 
@@ -1106,6 +1198,16 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
         onClose={() => setIsTrialsOpen(false)}
         patient={patient || null}
         onPatientUpdated={() => {
+          if (onDocumentUploaded) onDocumentUploaded();
+        }}
+      />
+
+      {/* HL7 FHIR v4.0 Interoperability Export Modal */}
+      <FhirExportModal
+        isOpen={isFhirModalOpen}
+        onClose={() => setIsFhirModalOpen(false)}
+        patient={patient || null}
+        onExportSuccess={() => {
           if (onDocumentUploaded) onDocumentUploaded();
         }}
       />

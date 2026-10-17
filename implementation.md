@@ -24,6 +24,9 @@ The development of the platform is broken down into four distinct, sequential Ep
 - **Epic 4: Advanced Generative UI, Analytics & Clinical Reporting (Completed):** Introducing interactive Generative UI clinical widgets, a population-level cohort analytics dashboard, dynamic patient admission workflows, and high-throughput agentic tool calling.
 - **Epic 5: Clinical Document Viewer, Pharmacological Safety Engine & Longitudinal Vitals Trending (Completed):** Adding in-app PDF & semantic chunk citation inspection, an agentic drug-drug interaction & allergy contraindication engine, and PostgreSQL-persisted longitudinal vitals curves.
 - **Epic 6: Multi-Modal Medical Vision & Diagnostic Imaging (Completed):** Integrating computer-aided diagnostic imaging, high-resolution radiology inspection with inverted contrast filters, and multi-modal clinical reasoning for Chest X-Rays, 12-lead ECGs, and lab panels.
+- **Epic 7: Ambient AI Scribe & Clinical Voice Dictation (Completed):** Implementing audio-to-SOAP synthesis, structured clinical quadrant parsing, ICD-10/CPT billing suggestions, and human-in-the-loop EHR note signing.
+- **Epic 8: Clinical Trial & Protocol Matching Engine (Completed):** Autonomous multi-center protocol matcher evaluating inclusion/exclusion criteria against patient biomarkers, computing 0-100% eligibility scores, and direct protocol enrollment.
+- **Epic 9: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed):** Immutable HIPAA § 164.312(b) access ledger, in-app compliance inspector modal, and standardized HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, DocumentReference, and ResearchSubject resources for EHR ingestion.
 
 ---
 ## Epic 0: Project Scaffolding & Porting (Completed)
@@ -319,3 +322,49 @@ We implemented a robust persistence layer and authentication framework to transi
 5. **Dashboard Roster & Header Integration (`src/app/page.tsx` & `src/components/ChatSidebar.tsx`):**
    - Added interactive `🎯 X Trials` trigger button to each patient card on the roster.
    - Added `Trials` quick link in the chat header and document chips bar.
+
+---
+
+## Epic 9: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed)
+
+*Successfully architected and deployed an immutable HIPAA access ledger conforming to 45 CFR § 164.312(b) audit control standards, an interactive compliance inspector modal with CSV/JSON ledger exports, and a standard HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, DocumentReference, and ResearchSubject resources for hospital electronic health record (EHR) ingestion.*
+
+**Completed Steps:**
+1. **Relational HIPAA Ledger Schema (`prisma/schema.prisma`):**
+   - Added `AuditLog` model to PostgreSQL:
+     - Fields: `id`, `userId`, `userEmail`, `patientId`, `action` (`"VIEW_RECORD"`, `"AI_COPILOT_QUERY"`, `"SCRIBE_SOAP_COMMIT"`, `"TRIAL_ENROLLMENT"`, `"VISION_INSPECTION"`, `"FHIR_EXPORT"`), `resourceType` (`"Patient"`, `"Document"`, `"VitalReading"`, `"MedicalImage"`, `"ClinicalNote"`, `"TrialMatch"`, `"FHIRBundle"`), `resourceId`, `details`, `ipAddress`, `userAgent`, `timestamp`.
+     - Compound B-tree indices on `[patientId, timestamp]` and `[action, timestamp]`.
+   - Synchronized schema via `npx prisma db push && npx prisma generate`.
+2. **Server Actions & Cryptographic Audit Helper (`src/app/actions/patients.ts`):**
+   - Implemented `logAuditAction()`: Automatically associates authenticated clinician session, client IP, user agent, action code, and audit target.
+   - Implemented `getAuditLogs()`: Fetches chronological audit logs for compliance review.
+   - Implemented `exportPatientFHIRBundle(patientId)`:
+     - Compiles standardized HL7 FHIR v4.0.1 JSON bundle (`type: "collection"`, `profile: "http://hl7.org/fhir/StructureDefinition/Bundle"`).
+     - Maps `Patient` with official MRN (`MED-XXXXX`), demographics, and managing health system.
+     - Maps `Observation` vitals with canonical LOINC codes: `85354-9` (BP panel), `8480-6` (Systolic), `8462-4` (Diastolic), `8867-4` (Heart rate), `2708-6` (SpO2).
+     - Maps `DiagnosticReport` imaging with DICOM modality codes (`RAD`, `EC`, `LAB`), LOINC `18748-4`, and SVG presentation links.
+     - Maps `DocumentReference` clinical SOAP notes with LOINC `11506-3` and base64-encoded structured clinical progress note attachments.
+     - Maps `ResearchSubject` clinical trial matches with ClinicalTrials.gov identifiers and consent status.
+     - Automatically logs a `FHIR_EXPORT` audit action upon bundle compilation.
+3. **Historical Audit Ledger Seeding (`prisma/seed_audit.ts`):**
+   - Seeded 10 verified historical compliance audit events across all clinical touchpoints (chart access, DICOM contrast filtering, semantic vector retrieval, ambient scribe SOAP sign-off, trial protocol enrollment, and prior HIE FHIR export).
+4. **Interactive In-App HIPAA Audit Trail Modal (`src/components/AuditTrailModal.tsx`):**
+   - High-fidelity compliance inspector:
+     - 4 real-time KPI metrics: Total Audited Events, AI Copilot Accesses, Clinical Scribe Sign-offs, HL7 FHIR Exports.
+     - Free-text search across actor, target patient, IP address, and details.
+     - Action filter dropdown (`VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `TRIAL_ENROLLMENT`, `VISION_INSPECTION`, `FHIR_EXPORT`).
+     - Audit table with local/UTC timestamps, color-coded badges, target resources, actor verification, and client IP addresses.
+     - "Export CSV" and "Export Audit JSON" buttons for statutory HIPAA compliance officer inspections and OCR audits.
+5. **HL7 FHIR Bundle Modal & Inspector (`src/components/FhirExportModal.tsx`):**
+   - Interactive electronic health data export modal:
+     - 3 tabs: "Bundle Overview", "Resource Inventory", and "Raw FHIR JSON".
+     - Real-time compilation of patient resources with LOINC and DICOM standards badges.
+     - One-click "Copy JSON" to clipboard and instant download of `.json` collection bundle.
+6. **AI Copilot FHIR Export Tool & Generative UI (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
+   - Added `exportFhirBundle` tool in chat API route with prompt instruction 10.
+   - Built the **HL7® FHIR® R4 Interoperability Bundle** Generative UI Card in `ChatSidebar.tsx`:
+     - Displays compiled health resources pills, MRN, LOINC standards, and direct "Inspect FHIR Bundle & Download" trigger.
+7. **Dashboard Integration (`src/app/page.tsx`):**
+   - Added `🛡️ HIPAA Audit Log` in top navbar.
+   - Added `FHIR` button to each patient card in the roster.
+   - Mounted `AuditTrailModal` and `FhirExportModal`.

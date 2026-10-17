@@ -183,3 +183,20 @@ model TrialMatch {
   @@unique([patientId, trialId])
   @@index([patientId, matchScore])
 }
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  userEmail    String?
+  patientId    Int?
+  action       String   // "VIEW_RECORD", "AI_COPILOT_QUERY", "SCRIBE_SOAP_COMMIT", "TRIAL_ENROLLMENT", "VISION_INSPECTION", "FHIR_EXPORT"
+  resourceType String   // "Patient", "Document", "VitalReading", "MedicalImage", "ClinicalNote", "TrialMatch", "FHIRBundle"
+  resourceId   String?
+  details      String?  @db.Text
+  ipAddress    String?  @default("127.0.0.1")
+  userAgent    String?  @default("MedIntel-EHR-Client/1.0")
+  timestamp    DateTime @default(now())
+
+  @@index([patientId, timestamp])
+  @@index([action, timestamp])
+}

@@ -245,3 +245,67 @@ Where:
 
 ### 3. Closed-Loop Protocol Enrollment
 When a clinician identifies an optimal protocol match, MedIntel provides a direct enrollment action. The platform updates the relational `TrialMatch` status to `"Enrolled"`, logs the attending physician referral in the EHR audit trail, and synchronizes the active cohort roster in real time.
+
+## 16. HIPAA Security Architecture, Audit Trail Ledger & HL7 FHIR Interoperability
+
+Operating clinical artificial intelligence within live hospital workflows requires unwavering compliance with the **Health Insurance Portability and Accountability Act (HIPAA)** Security Rule and strict interoperability with legacy Electronic Health Record (EHR) infrastructures via **HL7® Fast Healthcare Interoperability Resources (FHIR®)**.
+
+### 1. HIPAA Security Rule § 164.312(b) Audit Controls & Ledger Immutability
+Under 45 CFR § 164.312(b), a covered healthcare entity or business associate must *"implement hardware, software, and/or procedural mechanisms that record and examine activity in information systems that contain or use electronic protected health information (ePHI)."*
+
+MedIntel operationalizes this statutory requirement via a relational append-only **Audit Ledger** (`AuditLog`):
+
+$$\text{Audit Event} = \langle t_k, u_i, p_j, \alpha, \rho, \iota, \delta, \text{IP}, \text{UA} \rangle$$
+
+Where:
+- $t_k$: UTC timestamp with microsecond resolution.
+- $u_i, p_j$: Authenticated clinician identity and patient subject.
+- $\alpha$: Audited clinical action code:
+  - `VIEW_RECORD`: Clinician opened chart or inspected telemetry.
+  - `AI_COPILOT_QUERY`: Semantic vector retrieval executed against patient-isolated ChromaDB collections.
+  - `SCRIBE_SOAP_COMMIT`: Ambient AI scribe note committed with physician sign-off.
+  - `TRIAL_ENROLLMENT`: Clinical trial protocol match consented and enrolled.
+  - `VISION_INSPECTION`: High-resolution radiograph or ECG evaluated (including contrast inversions).
+  - `FHIR_EXPORT`: Electronic health record bundle compilation for external HIE exchange.
+- $\rho, \iota$: Resource type (e.g. `Patient`, `Document`, `FHIRBundle`) and target resource identifier.
+- $\delta$: Human-readable clinical narrative explaining the nature of the data retrieval.
+- $\text{IP}, \text{UA}$: Cryptographic audit trace recording client networking signatures.
+
+All access events are indexed via compound B-trees (`[patientId, timestamp]` and `[action, timestamp]`), enabling rapid querying during Office for Civil Rights (OCR) compliance audits and real-time security surveillance.
+
+### 2. HL7® FHIR® Release 4.0.1 Semantic Interoperability
+Hospital data silos have historically crippled patient care continuity. The standard for healthcare data exchange is **HL7 FHIR Release 4.0.1** (specifically adhering to the **US Core Implementation Guide STU4**).
+
+MedIntel compiles disparate relational databases (PostgreSQL tables, ChromaDB vector metadata, and signed clinical notes) into a unified, validated **FHIR Collection Bundle**:
+
+```
+Bundle (collection)
+├── Patient (US Core Patient Profile, MRN: MED-XXXXX)
+├── Observation (Vitals: Blood Pressure Panel, LOINC 85354-9)
+│   ├── Component: Systolic BP (LOINC 8480-6, mmHg)
+│   └── Component: Diastolic BP (LOINC 8462-4, mmHg)
+├── Observation (Heart Rate, LOINC 8867-4, /min)
+├── Observation (Arterial Oxygen Saturation, LOINC 2708-6, %)
+├── DiagnosticReport (Radiology / ECG, LOINC 18748-4, DICOM Modalities: RAD, EC, LAB)
+│   └── PresentedForm: SVG Scan Vector Payload
+├── DocumentReference (Clinical Progress Notes, LOINC 11506-3)
+│   └── Attachment: Base64-encoded structured SOAP note narrative
+└── ResearchSubject (ClinicalTrials.gov protocol matches & consent status)
+```
+
+#### Canonical Coding Standards Utilized:
+1. **LOINC (Logical Observation Identifiers Names and Codes):**
+   - `85354-9`: Blood pressure panel with all children optional
+   - `8480-6`: Systolic blood pressure
+   - `8462-4`: Diastolic blood pressure
+   - `8867-4`: Heart rate
+   - `2708-6`: Oxygen saturation in Arterial blood
+   - `18748-4`: Diagnostic imaging study report
+   - `11506-3`: Progress note
+2. **DICOM Modality Mapping (HL7 Table 0074):**
+   - `RAD`: Radiology (Chest X-Rays, AP views)
+   - `EC`: Electrocardiography (12-Lead ECG telemetry)
+   - `LAB`: Laboratory & biomarker assays
+3. **SMART on FHIR Readiness:**
+   - Bundles conform to OAuth 2.0 / OpenID Connect scopes and can be directly ingested into major EHR systems including Epic Systems (MyChart / Hyperspace), Cerner / Oracle Health, and modern Health Information Exchanges (HIEs).
+

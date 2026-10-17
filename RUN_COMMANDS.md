@@ -256,6 +256,43 @@ To access your patients and test the AI features:
 
 ---
 
+### Test K: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Epic 9)
+1. **In-App HIPAA Security Ledger & Compliance Inspector:**
+   - In the top navigation bar, click the **`🛡️ HIPAA Audit Log`** button.
+   - The **HIPAA Security Ledger & Compliance Audit Trail** modal opens:
+     - **Audit Metrics:** Observe live counters for *Total Audited Events*, *AI Copilot Retrieval Logs*, *Clinical Scribe Sign-offs*, and *HL7 FHIR v4.0 Exports*.
+     - **Live Filter Toolbar:** Filter the table by Action (e.g. `VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `TRIAL_ENROLLMENT`, `VISION_INSPECTION`, `FHIR_EXPORT`) or search by clinician/MRN.
+     - **Compliance Ledger Table:** Review exact UTC timestamps, action badges, actor attribution (`doctor@medintel.com`), target patient MRN (`MED-10084`), and client IP.
+     - **Compliance Export:** Click **`Export CSV`** or **`Export Audit JSON`** to test downloading official compliance records for hospital security inspections and OCR audits.
+   - Click **`Close Audit Inspector`**.
+
+2. **Standard HL7 FHIR Release 4.0.1 Export Modal:**
+   - On **John Doe's** patient card, click the **`FHIR`** button.
+   - The **HL7® FHIR® R4 Interoperability Bundle** modal opens:
+     - **Bundle Overview:** Review compiled health resources:
+       - 🧑 **Patient:** Demographics and official MRN `MED-10084`.
+       - 🩺 **Observations:** LOINC-coded vitals (Blood pressure panel `85354-9`, Heart rate `8867-4`, SpO2 `2708-6`).
+       - 🩻 **Diagnostic Reports:** Radiology scans (Chest X-Ray, 12-lead ECG) mapped to DICOM modality `RAD`/`EC` and LOINC `18748-4`.
+       - 📝 **Document References:** Clinical progress notes (LOINC `11506-3`) with base64-encoded SOAP narrative attachments.
+       - 🔬 **Research Subjects:** Precision protocol matches (ARREST-HTN) and consent status.
+     - **Resource Inventory Tab:** Inspect individual FHIR resource JSON definitions.
+     - **Raw FHIR JSON Tab:** View syntax-highlighted bundle JSON.
+     - Click **`Copy JSON`** (copies full bundle to clipboard) or **`Download Bundle`** (downloads `FHIR_Bundle_Patient_1_John_Doe.json`).
+   - Click **`Close Exporter`**.
+
+3. **Autonomous AI Copilot FHIR Export in Chat:**
+   - Click on **John Doe's** card to open the AI Assistant chat drawer.
+   - Type in chat:
+     > *"Export this patient's records as an HL7 FHIR bundle for electronic health exchange."*
+   - The AI Copilot autonomously executes the `exportFhirBundle` tool and returns the **HL7® FHIR® R4 Interoperability Bundle Generative UI Card**:
+     - Displays the verified US Core STU4 Release 4.0.1 badge.
+     - Displays compiled resource pill breakdown (Patient: 1, Observations, Diagnostic Scans, Clinical Notes, Research Subjects).
+     - Displays validated LOINC standards.
+     - Click **`Inspect FHIR Bundle & Download`** to launch the interactive viewer directly from the chat conversation!
+   - This export action is automatically logged in the PostgreSQL `AuditLog` table under 45 CFR § 164.312(b).
+
+---
+
 ## 3. How to Start Services Manually (If Ever Stopped)
 
 If you reboot your machine or close the terminals, run these 3 commands:

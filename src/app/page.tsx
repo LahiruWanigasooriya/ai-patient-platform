@@ -9,6 +9,8 @@ import { VitalsTrajectoryModal } from "@/components/VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
 import { AmbientScribeModal } from "@/components/AmbientScribeModal";
 import { ClinicalTrialsModal } from "@/components/ClinicalTrialsModal";
+import { AuditTrailModal } from "@/components/AuditTrailModal";
+import { FhirExportModal } from "@/components/FhirExportModal";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -27,7 +29,8 @@ import {
   EyeIcon,
   PhotoIcon,
   MicrophoneIcon,
-  BeakerIcon
+  BeakerIcon,
+  DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { getPatients } from "./actions/patients";
@@ -48,6 +51,8 @@ export default function Dashboard() {
   const [imageAnalysisPatient, setImageAnalysisPatient] = useState<PatientWithDocs | null>(null);
   const [scribePatient, setScribePatient] = useState<PatientWithDocs | null>(null);
   const [trialsPatient, setTrialsPatient] = useState<PatientWithDocs | null>(null);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [fhirExportPatient, setFhirExportPatient] = useState<PatientWithDocs | null>(null);
 
   const refreshPatients = () => {
     setLoading(true);
@@ -147,6 +152,15 @@ export default function Dashboard() {
               <span>Cohort Analytics</span>
             </button>
             
+            <button 
+              onClick={() => setIsAuditModalOpen(true)}
+              className="flex items-center space-x-1.5 font-semibold text-xs px-3.5 py-1.5 rounded-full border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition cursor-pointer shadow-2xs"
+              title="Open HIPAA Audit Trail & Security Ledger"
+            >
+              <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+              <span>HIPAA Audit Log</span>
+            </button>
+
             <button 
               onClick={() => setIsAddPatientModalOpen(true)}
               className="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-all shadow-xs hover:shadow-md cursor-pointer"
@@ -433,6 +447,21 @@ export default function Dashboard() {
                                 ? `${patient.trialMatches.filter(m => m.matchScore >= 70).length} Trials`
                                 : "Trials"}
                             </span>
+                          </button>
+
+                          <span>•</span>
+
+                          {/* HL7 FHIR Interoperability Export Trigger */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFhirExportPatient(patient);
+                            }}
+                            className="flex items-center text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer"
+                            title="Export standardized HL7 FHIR v4.0 Bundle"
+                          >
+                            <DocumentDuplicateIcon className="w-3.5 h-3.5 mr-0.5" />
+                            <span>FHIR</span>
                           </button>
                         </div>
 
@@ -884,6 +913,28 @@ export default function Dashboard() {
           onClose={() => setTrialsPatient(null)}
           patient={trialsPatient}
           onPatientUpdated={refreshPatients}
+        />
+      )}
+
+      {/* HIPAA Compliance & Security Audit Ledger Modal */}
+      <AuditTrailModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+        onOpenFhirExport={(patientId) => {
+          const pt = patients.find(p => p.id === patientId);
+          if (pt) {
+            setFhirExportPatient(pt);
+          }
+        }}
+      />
+
+      {/* HL7 FHIR v4.0 Interoperability Export Modal */}
+      {fhirExportPatient && (
+        <FhirExportModal
+          isOpen={!!fhirExportPatient}
+          onClose={() => setFhirExportPatient(null)}
+          patient={fhirExportPatient}
+          onExportSuccess={refreshPatients}
         />
       )}
       
