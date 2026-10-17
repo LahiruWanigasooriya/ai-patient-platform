@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,6 +49,11 @@ export default function LoginPage() {
       {/* Top Navbar Logo (Optional, like Pixabay) */}
       <div className="absolute top-6 left-8 z-20 flex items-center space-x-2">
         <h1 className="text-3xl font-black text-white tracking-tighter">MedIntel</h1>
+      </div>
+
+      {/* Top Navbar Theme Toggle */}
+      <div className="absolute top-6 right-8 z-20">
+        <ThemeToggle />
       </div>
 
       {/* The Pixabay-style Modal */}

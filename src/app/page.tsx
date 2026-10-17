@@ -10,6 +10,7 @@ import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
 import { AmbientScribeModal } from "@/components/AmbientScribeModal";
 import { AuditTrailModal } from "@/components/AuditTrailModal";
 import { FhirExportModal } from "@/components/FhirExportModal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -125,46 +126,53 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-6">
-            <button 
-              onClick={() => { setActiveTab("patients"); setSelectedPatient(null); }}
-              className={`font-medium transition-colors cursor-pointer text-sm px-3 py-1.5 rounded-lg ${
-                activeTab === "patients" 
-                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 font-semibold" 
-                  : "text-gray-600 dark:text-gray-300 hover:text-emerald-500"
-              }`}
-            >
-              Explore Patients
-            </button>
+          <div className="flex items-center space-x-4">
+            <nav className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={() => { setActiveTab("patients"); setSelectedPatient(null); }}
+                className={`font-medium transition-colors cursor-pointer text-sm px-3 py-1.5 rounded-lg ${
+                  activeTab === "patients" 
+                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 font-semibold" 
+                    : "text-gray-600 dark:text-gray-300 hover:text-emerald-500"
+                }`}
+              >
+                Explore Patients
+              </button>
 
-            <button 
-              onClick={() => { setActiveTab("analytics"); setSelectedPatient(null); }}
-              className={`flex items-center space-x-1.5 font-medium transition-colors cursor-pointer text-sm px-3 py-1.5 rounded-lg ${
-                activeTab === "analytics" 
-                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 font-semibold" 
-                  : "text-gray-600 dark:text-gray-300 hover:text-emerald-500"
-              }`}
-            >
-              <ChartBarIcon className="w-4 h-4" />
-              <span>Cohort Analytics</span>
-            </button>
-            
-            <button 
-              onClick={() => setIsAuditModalOpen(true)}
-              className="flex items-center space-x-1.5 font-semibold text-xs px-3.5 py-1.5 rounded-full border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition cursor-pointer shadow-2xs"
-              title="Open HIPAA Audit Trail & Security Ledger"
-            >
-              <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500" />
-              <span>HIPAA Audit Log</span>
-            </button>
+              <button 
+                onClick={() => { setActiveTab("analytics"); setSelectedPatient(null); }}
+                className={`flex items-center space-x-1.5 font-medium transition-colors cursor-pointer text-sm px-3 py-1.5 rounded-lg ${
+                  activeTab === "analytics" 
+                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 font-semibold" 
+                    : "text-gray-600 dark:text-gray-300 hover:text-emerald-500"
+                }`}
+              >
+                <ChartBarIcon className="w-4 h-4" />
+                <span>Cohort Analytics</span>
+              </button>
+              
+              <button 
+                onClick={() => setIsAuditModalOpen(true)}
+                className="flex items-center space-x-1.5 font-semibold text-xs px-3.5 py-1.5 rounded-full border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition cursor-pointer shadow-2xs"
+                title="Open HIPAA Audit Trail & Security Ledger"
+              >
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+                <span>HIPAA Audit Log</span>
+              </button>
 
-            <button 
-              onClick={() => setIsAddPatientModalOpen(true)}
-              className="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-all shadow-xs hover:shadow-md cursor-pointer"
-            >
-              <UserPlusIcon className="w-4 h-4" />
-              <span>+ Admit Patient</span>
-            </button>
+              <button 
+                onClick={() => setIsAddPatientModalOpen(true)}
+                className="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-all shadow-xs hover:shadow-md cursor-pointer"
+              >
+                <UserPlusIcon className="w-4 h-4" />
+                <span>+ Admit Patient</span>
+              </button>
+            </nav>
+
+            {/* Dark / Light Mode Changer Toggle */}
+            <div className="flex items-center pl-1 md:pl-2">
+              <ThemeToggle />
+            </div>
             
             {session ? (
               <div className="flex items-center space-x-4 pl-4 border-l border-gray-200 dark:border-gray-800">
@@ -200,7 +208,7 @@ export default function Dashboard() {
                 Log In
               </Link>
             )}
-          </nav>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto scroll-smooth">

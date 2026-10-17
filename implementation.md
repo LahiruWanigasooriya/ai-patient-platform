@@ -328,3 +328,25 @@ We implemented a robust persistence layer and authentication framework to transi
    - Added `🛡️ HIPAA Audit Log` in top navbar.
    - Added `FHIR` button to each patient card in the roster.
    - Mounted `AuditTrailModal` and `FhirExportModal`.
+
+---
+
+## UI/UX Enhancement: Dark / Light Mode Changer Toggle
+
+*Implemented a complete, persistent class-based dark/light theme switching architecture supporting modern Tailwind CSS v4 custom variants, SSR hydration anti-flicker scripting, and responsive navbar integration.*
+
+**Components & Architecture:**
+1. **Tailwind CSS v4 Configuration (`src/app/globals.css`):**
+   - Configured `@custom-variant dark (&:where(.dark, .dark *));` to drive class-based dark mode across all 400+ existing dark utility classes (`dark:bg-...`, `dark:text-...`, `dark:border-...`).
+   - Defined dual color-scheme CSS variables for `--background` and `--foreground`.
+   - Added smooth transitions for background and text color shifts (`duration-300`).
+2. **Theme Context & State Persistence (`src/components/ThemeProvider.tsx`):**
+   - Manages `"dark" | "light"` state with automatic detection of user system preference (`prefers-color-scheme: dark`).
+   - Persists user preferences into browser `localStorage` (`medintel-theme`).
+   - Dynamically adds or removes the `.dark` class on `document.documentElement`.
+3. **Anti-Flicker Pre-Hydration Execution (`src/app/layout.tsx`):**
+   - Injected a lightweight synchronous script into `<head>` with `suppressHydrationWarning` on `<html>` to evaluate cached theme and apply `.dark` before first paint, eliminating layout flicker.
+4. **Interactive Theme Toggle Component (`src/components/ThemeToggle.tsx`):**
+   - High-fidelity sliding pill switch with animated amber Sun and indigo Moon icons.
+   - Hover and active spring micro-animations with dual-mode ambient glows.
+   - Mounted prominently in the navigation header on both Desktop and Mobile viewports, as well as on the authentication screen (`src/app/login/page.tsx`).
