@@ -11,7 +11,6 @@ import {
   CheckBadgeIcon,
   SparklesIcon,
   MicrophoneIcon,
-  BeakerIcon,
   EyeIcon,
   ArrowUpRightIcon
 } from "@heroicons/react/24/outline";
@@ -96,12 +95,6 @@ export function AuditTrailModal({ isOpen, onClose, onOpenFhirExport }: AuditTrai
           bg: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
           icon: <MicrophoneIcon className="w-3.5 h-3.5 mr-1 text-rose-500" />,
           label: "Scribe SOAP",
-        };
-      case "TRIAL_ENROLLMENT":
-        return {
-          bg: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
-          icon: <BeakerIcon className="w-3.5 h-3.5 mr-1 text-amber-500" />,
-          label: "Trial Match",
         };
       case "VISION_INSPECTION":
         return {
@@ -265,7 +258,6 @@ export function AuditTrailModal({ isOpen, onClose, onOpenFhirExport }: AuditTrai
               <option value="VIEW_RECORD">Chart Access (VIEW_RECORD)</option>
               <option value="AI_COPILOT_QUERY">AI RAG Query (AI_COPILOT_QUERY)</option>
               <option value="SCRIBE_SOAP_COMMIT">Scribe SOAP (SCRIBE_SOAP_COMMIT)</option>
-              <option value="TRIAL_ENROLLMENT">Trial Protocol (TRIAL_ENROLLMENT)</option>
               <option value="VISION_INSPECTION">Diagnostic Scan (VISION_INSPECTION)</option>
               <option value="FHIR_EXPORT">HL7 FHIR Export (FHIR_EXPORT)</option>
             </select>

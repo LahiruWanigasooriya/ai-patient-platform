@@ -215,38 +215,7 @@ To accelerate hospital revenue cycle management without administrative overhead,
 - **CPT (Current Procedural Terminology):** e.g., `99214` (Office Outpatient Visit, Established Patient, Moderate Medical Complexity) vs `99213` (Low Complexity).
 - **ICD-10-CM:** e.g., `I10` (Essential Primary Hypertension), `I51.7` (Cardiomegaly), `Z88.0` (Allergy status to penicillin).
 
-## 15. Clinical Trial Eligibility Algorithms & Precision Biomarker Matching
-
-In modern oncology, rare disease care, and refractory chronic illness, access to clinical trials represents the frontier of precision medicine. However, fewer than 5% of eligible adult patients ever enroll in clinical research—principally due to the cognitive complexity of parsing unstructured trial protocols against disparate patient records.
-
-MedIntel operationalizes clinical trial matching through a **Multi-Criteria Eligibility Matrix (MCEM)**:
-
-### 1. The Structure of Clinical Trial Eligibility Criteria
-Clinical trials registered on ClinicalTrials.gov and WHO registries evaluate patients across three distinct gatekeeping tiers:
-1. **Demographic & Physiological Bounds:**
-   - Numerical intervals: Age ranges ($18 \le \text{Age} \le 70$), seated blood pressure thresholds ($\text{SBP} \ge 160\text{ mmHg}$), or renal clearance rates ($\text{eGFR} \ge 45\text{ mL/min/1.73m}^2$).
-2. **Biomarker & Diagnostic Correlates:**
-   - Quantitative lab titers (e.g., Specific IgE against Penicilloyl determinants $\ge 10.0\text{ kU/L}$, Class III/IV).
-   - Visual and morphometric evidence (e.g., Sokolow-Lyon LVH voltage $\ge 35\text{ mm}$, or Cardiothoracic Ratio $CTR > 0.50$).
-3. **Hard Exclusionary Rules (Absolute Disqualifiers):**
-   - Safety constraints that immediately override all satisfied inclusions regardless of disease severity.
-   - *Example:* Recent major intra-abdominal surgery within 30 days. In Patient 3 (Robert Johnson), despite satisfying age and surveillance inclusion criteria, his Day 7 post-laparoscopic appendectomy status triggers an immediate **Hard Exclusion Flag**, preventing unsafe experimental protocol exposure during the acute wound-healing phase.
-
-### 2. Algorithmic Matching Scoring Function
-MedIntel computes a normalized Eligibility Match Score ($S_E \in [0, 100]$):
-$$S_E = \begin{cases} 
-0 & \text{if any } E_k \in \text{HardExclusions is TRUE} \\
-\left( \frac{\sum_{i=1}^{N} w_i \cdot I_i}{\sum_{i=1}^{N} w_i} \right) \times 100 & \text{otherwise}
-\end{cases}$$
-Where:
-- $I_i \in \{0, 1\}$ indicates whether the $i$-th inclusion criterion is verified from the patient's relational EHR records.
-- $w_i$ represents the clinical weight of the criterion (e.g., primary target biomarker vs generic consent criteria).
-- Hard exclusion triggers immediately penalize the score or assign an explicit **Excluded** protocol classification.
-
-### 3. Closed-Loop Protocol Enrollment
-When a clinician identifies an optimal protocol match, MedIntel provides a direct enrollment action. The platform updates the relational `TrialMatch` status to `"Enrolled"`, logs the attending physician referral in the EHR audit trail, and synchronizes the active cohort roster in real time.
-
-## 16. HIPAA Security Architecture, Audit Trail Ledger & HL7 FHIR Interoperability
+## 15. HIPAA Security Architecture, Audit Trail Ledger & HL7 FHIR Interoperability
 
 Operating clinical artificial intelligence within live hospital workflows requires unwavering compliance with the **Health Insurance Portability and Accountability Act (HIPAA)** Security Rule and strict interoperability with legacy Electronic Health Record (EHR) infrastructures via **HL7® Fast Healthcare Interoperability Resources (FHIR®)**.
 
@@ -264,7 +233,6 @@ Where:
   - `VIEW_RECORD`: Clinician opened chart or inspected telemetry.
   - `AI_COPILOT_QUERY`: Semantic vector retrieval executed against patient-isolated ChromaDB collections.
   - `SCRIBE_SOAP_COMMIT`: Ambient AI scribe note committed with physician sign-off.
-  - `TRIAL_ENROLLMENT`: Clinical trial protocol match consented and enrolled.
   - `VISION_INSPECTION`: High-resolution radiograph or ECG evaluated (including contrast inversions).
   - `FHIR_EXPORT`: Electronic health record bundle compilation for external HIE exchange.
 - $\rho, \iota$: Resource type (e.g. `Patient`, `Document`, `FHIRBundle`) and target resource identifier.
@@ -288,9 +256,8 @@ Bundle (collection)
 ├── Observation (Arterial Oxygen Saturation, LOINC 2708-6, %)
 ├── DiagnosticReport (Radiology / ECG, LOINC 18748-4, DICOM Modalities: RAD, EC, LAB)
 │   └── PresentedForm: SVG Scan Vector Payload
-├── DocumentReference (Clinical Progress Notes, LOINC 11506-3)
-│   └── Attachment: Base64-encoded structured SOAP note narrative
-└── ResearchSubject (ClinicalTrials.gov protocol matches & consent status)
+└── DocumentReference (Clinical Progress Notes, LOINC 11506-3)
+    └── Attachment: Base64-encoded structured SOAP note narrative
 ```
 
 #### Canonical Coding Standards Utilized:
@@ -308,4 +275,5 @@ Bundle (collection)
    - `LAB`: Laboratory & biomarker assays
 3. **SMART on FHIR Readiness:**
    - Bundles conform to OAuth 2.0 / OpenID Connect scopes and can be directly ingested into major EHR systems including Epic Systems (MyChart / Hyperspace), Cerner / Oracle Health, and modern Health Information Exchanges (HIEs).
+
 

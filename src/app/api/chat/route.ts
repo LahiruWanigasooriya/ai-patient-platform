@@ -51,9 +51,8 @@ Instructions:
 6. If the user mentions medications or asks about drug interactions, drug safety, contraindications, or allergy compatibility, you MUST call the checkDrugInteractions tool.
 7. If the user asks to inspect, analyze, or interpret a medical image, X-ray, radiograph, ECG tracing, or diagnostic scan, you MUST call the analyzeMedicalScan tool.
 8. If the user provides clinical dictation, dialogue, transcript, audio consultation, or asks to transcribe, summarize, or generate a structured SOAP note, you MUST call the synthesizeSoapNote tool.
-9. If the user asks about clinical trials, experimental protocols, novel therapies, protocol eligibility, or clinical research recruitment, you MUST call the matchClinicalTrials tool.
-10. If the user asks to export clinical data to FHIR, generate an EHR interoperability bundle, or download HL7 health records, you MUST call the exportFhirBundle tool.
-11. Always maintain high clinical precision, professionalism, and clarity.`;
+9. If the user asks to export clinical data to FHIR, generate an EHR interoperability bundle, or download HL7 health records, you MUST call the exportFhirBundle tool.
+10. Always maintain high clinical precision, professionalism, and clarity.`;
 
     // Normalize messages so convertToModelMessages works seamlessly with both UI and standard payloads
     const normalizedMessages = messages.map((m: any) => {
@@ -571,94 +570,8 @@ Instructions:
             };
           },
         }),
-        matchClinicalTrials: tool({
-          description: "Match the active patient against open clinical trials, investigational protocols, and precision research registries based on their condition, vitals, biomarkers, and surgical history.",
-          parameters: z.object({
-            conditionFilter: z.string().optional().describe("Optional clinical domain filter, e.g. 'Hypertension', 'Allergy', 'Asthma', 'Oncology'"),
-          }),
-          // @ts-ignore: Bypass AI SDK version mismatch for execute type
-          execute: async (rawArgs: any): Promise<any> => {
-            const actualArgs = rawArgs?.conditionFilter ? rawArgs : (rawArgs?.args || rawArgs || {});
-            const conditionFilter = actualArgs.conditionFilter?.toLowerCase() || "";
-            console.log(`[Tool] matchClinicalTrials for patientId: ${patientId}, filter: ${conditionFilter}`);
-
-            let patientName = "Selected Patient";
-            let matches: any[] = [];
-
-            if (patientId) {
-              const pt = await prisma.patient.findUnique({
-                where: { id: patientId },
-                include: {
-                  trialMatches: {
-                    include: { trial: true },
-                    orderBy: { matchScore: "desc" },
-                  },
-                },
-              });
-
-              if (pt) {
-                patientName = pt.name;
-                matches = pt.trialMatches.map(m => ({
-                  trialId: m.trial.id,
-                  trialTitle: m.trial.title,
-                  phase: m.trial.phase,
-                  condition: m.trial.condition,
-                  sponsor: m.trial.sponsor,
-                  status: m.status,
-                  matchScore: m.matchScore,
-                  targetBiomarkers: m.trial.targetBiomarkers,
-                  matchedInclusions: m.matchedInclusions,
-                  exclusionFlags: m.exclusionFlags,
-                  aiRationale: m.aiRationale,
-                }));
-              }
-            }
-
-            // Fallback or general trials if no specific patient matches exist
-            if (matches.length === 0) {
-              const allTrials = await prisma.clinicalTrial.findMany({ take: 3 });
-              matches = allTrials.map(t => ({
-                trialId: t.id,
-                trialTitle: t.title,
-                phase: t.phase,
-                condition: t.condition,
-                sponsor: t.sponsor,
-                status: "Candidate",
-                matchScore: 85,
-                targetBiomarkers: t.targetBiomarkers,
-                matchedInclusions: t.inclusionCriteria.slice(0, 2),
-                exclusionFlags: [],
-                aiRationale: `Candidate match based on general clinical profile. Meets preliminary inclusion for ${t.condition}.`,
-              }));
-            }
-
-            if (conditionFilter) {
-              const filtered = matches.filter(m => 
-                m.condition.toLowerCase().includes(conditionFilter) || 
-                m.trialTitle.toLowerCase().includes(conditionFilter)
-              );
-              if (filtered.length > 0) matches = filtered;
-            }
-
-            const highestMatch = matches[0]?.matchScore || 0;
-            const eligibleCount = matches.filter(m => m.matchScore >= 70 && (!m.exclusionFlags || m.exclusionFlags.length === 0)).length;
-
-            return {
-              patientId,
-              patientName,
-              trials: matches,
-              totalEvaluated: matches.length,
-              eligibleCount,
-              highestMatchScore: highestMatch,
-              recommendation: eligibleCount > 0 
-                ? `Patient qualifies as a prime candidate for ${eligibleCount} multi-center clinical study protocol(s). Immediate clinical trial referral recommended.` 
-                : "No high-affinity trials identified at this time, or patient has exclusionary criteria (e.g. recent surgery).",
-              evaluatedAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-            };
-          },
-        }),
         exportFhirBundle: tool({
-          description: "Compile and export a standardized HL7 FHIR v4.0.1 Interoperability Bundle (US Core STU4 compliant) for the current patient, containing Patient, Observation (vitals with LOINC), DiagnosticReport (imaging), DocumentReference (SOAP notes), and ResearchSubject (clinical trials). Use this whenever the user asks to export to FHIR or EHR exchange.",
+          description: "Compile and export a standardized HL7 FHIR v4.0.1 Interoperability Bundle (US Core STU4 compliant) for the current patient, containing Patient, Observation (vitals with LOINC), DiagnosticReport (imaging), and DocumentReference (SOAP notes). Use this whenever the user asks to export to FHIR or EHR exchange.",
           parameters: z.object({
             exportFormat: z.enum(["json", "summary"]).default("json").describe("The requested export format"),
           }),
@@ -679,7 +592,6 @@ Instructions:
                 vitalReadings: { orderBy: { recordedAt: "asc" } },
                 images: true,
                 clinicalNotes: { orderBy: { createdAt: "desc" } },
-                trialMatches: { include: { trial: true } },
               },
             });
 
@@ -757,20 +669,6 @@ Instructions:
               });
             });
 
-            // 5. ResearchSubjects (Clinical Trial Protocols)
-            patient.trialMatches.forEach((tm) => {
-              entries.push({
-                fullUrl: `urn:uuid:rs-${tm.id}`,
-                resource: {
-                  resourceType: "ResearchSubject",
-                  id: `rs-${tm.id}`,
-                  status: tm.status === "Enrolled" ? "enrolled" : "candidate",
-                  study: { identifier: { system: "https://clinicaltrials.gov", value: tm.trial.id }, display: tm.trial.title },
-                  individual: { reference: `urn:uuid:patient-${patient.id}` },
-                },
-              });
-            });
-
             const bundleId = `bundle-patient-${patient.id}-${Date.now()}`;
 
             // Create HIPAA Audit Log Entry
@@ -803,7 +701,6 @@ Instructions:
                 Observation: patient.vitalReadings.length,
                 DiagnosticReport: patient.images.length,
                 DocumentReference: patient.clinicalNotes.length,
-                ResearchSubject: patient.trialMatches.length,
               },
               fhirVersion: "4.0.1",
               profile: "http://hl7.org/fhir/StructureDefinition/Bundle",

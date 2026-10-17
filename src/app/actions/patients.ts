@@ -26,10 +26,6 @@ export async function getPatients() {
           },
           clinicalNotes: {
             orderBy: { createdAt: 'desc' }
-          },
-          trialMatches: {
-            include: { trial: true },
-            orderBy: { matchScore: 'desc' }
           }
         },
         orderBy: { updatedAt: 'desc' }
@@ -271,67 +267,6 @@ export async function deleteClinicalNote(noteId: string) {
   });
 }
 
-export async function getClinicalTrials() {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return [];
-  }
-
-  return await prisma.clinicalTrial.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-export async function getPatientTrialMatches(patientId: number) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return [];
-  }
-
-  return await prisma.trialMatch.findMany({
-    where: { patientId },
-    include: { trial: true },
-    orderBy: { matchScore: 'desc' },
-  });
-}
-
-export async function enrollPatientInTrial(patientId: number, trialId: string) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
-
-  const updatedMatch = await prisma.trialMatch.update({
-    where: {
-      patientId_trialId: {
-        patientId,
-        trialId,
-      },
-    },
-    data: {
-      status: "Enrolled",
-    },
-    include: { trial: true },
-  });
-
-  // Touch patient updatedAt
-  await prisma.patient.update({
-    where: { id: patientId },
-    data: { updatedAt: new Date() },
-  });
-
-  // Log HIPAA audit trail
-  await logAuditAction({
-    patientId,
-    action: "TRIAL_ENROLLMENT",
-    resourceType: "TrialMatch",
-    resourceId: trialId,
-    details: `Enrolled patient in clinical trial protocol ${trialId}`,
-  });
-
-  return updatedMatch;
-}
-
 export async function logAuditAction(data: {
   patientId?: number | null;
   action: string;
@@ -384,7 +319,6 @@ export async function exportPatientFHIRBundle(patientId: number) {
       vitalReadings: { orderBy: { recordedAt: 'asc' } },
       images: true,
       clinicalNotes: { orderBy: { createdAt: 'desc' } },
-      trialMatches: { include: { trial: true } },
     },
   });
 
@@ -577,26 +511,6 @@ export async function exportPatientFHIRBundle(patientId: number) {
             },
           },
         ],
-      },
-    });
-  });
-
-  // 5. FHIR ResearchSubject Resources for Clinical Trial Matches
-  patient.trialMatches.forEach((tm) => {
-    entries.push({
-      fullUrl: `urn:uuid:researchsubject-${tm.id}`,
-      resource: {
-        resourceType: "ResearchSubject",
-        id: `rs-${tm.id}`,
-        status: tm.status === "Enrolled" ? "enrolled" : "candidate",
-        study: {
-          identifier: { system: "https://clinicaltrials.gov", value: tm.trial.id },
-          display: tm.trial.title,
-        },
-        individual: { reference: `urn:uuid:patient-${patient.id}` },
-        consent: {
-          display: tm.status === "Enrolled" ? "Signed Protocol Consent" : "Pending Screening Evaluation",
-        },
       },
     });
   });

@@ -8,7 +8,6 @@ import { DocumentViewerModal } from "@/components/DocumentViewerModal";
 import { VitalsTrajectoryModal } from "@/components/VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
 import { AmbientScribeModal } from "@/components/AmbientScribeModal";
-import { ClinicalTrialsModal } from "@/components/ClinicalTrialsModal";
 import { AuditTrailModal } from "@/components/AuditTrailModal";
 import { FhirExportModal } from "@/components/FhirExportModal";
 import { 
@@ -29,7 +28,6 @@ import {
   EyeIcon,
   PhotoIcon,
   MicrophoneIcon,
-  BeakerIcon,
   DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -50,7 +48,6 @@ export default function Dashboard() {
   const [trajectoryPatient, setTrajectoryPatient] = useState<PatientWithDocs | null>(null);
   const [imageAnalysisPatient, setImageAnalysisPatient] = useState<PatientWithDocs | null>(null);
   const [scribePatient, setScribePatient] = useState<PatientWithDocs | null>(null);
-  const [trialsPatient, setTrialsPatient] = useState<PatientWithDocs | null>(null);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [fhirExportPatient, setFhirExportPatient] = useState<PatientWithDocs | null>(null);
 
@@ -428,25 +425,6 @@ export default function Dashboard() {
                           >
                             <MicrophoneIcon className="w-3.5 h-3.5 mr-0.5" />
                             <span>{patient.clinicalNotes?.length || 0} Notes</span>
-                          </button>
-
-                          <span>•</span>
-
-                          {/* Clinical Trials Protocol Trigger */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTrialsPatient(patient);
-                            }}
-                            className="flex items-center text-amber-600 dark:text-amber-400 hover:underline font-semibold cursor-pointer"
-                            title="Clinical Trial & Protocol Matching Engine"
-                          >
-                            <BeakerIcon className="w-3.5 h-3.5 mr-0.5" />
-                            <span>
-                              {patient.trialMatches && patient.trialMatches.filter(m => m.matchScore >= 70).length > 0
-                                ? `${patient.trialMatches.filter(m => m.matchScore >= 70).length} Trials`
-                                : "Trials"}
-                            </span>
                           </button>
 
                           <span>•</span>
@@ -906,15 +884,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Clinical Trial Protocol Matching Modal */}
-      {trialsPatient && (
-        <ClinicalTrialsModal
-          isOpen={!!trialsPatient}
-          onClose={() => setTrialsPatient(null)}
-          patient={trialsPatient}
-          onPatientUpdated={refreshPatients}
-        />
-      )}
 
       {/* HIPAA Compliance & Security Audit Ledger Modal */}
       <AuditTrailModal

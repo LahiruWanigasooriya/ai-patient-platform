@@ -229,39 +229,12 @@ To access your patients and test the AI features:
      - The button immediately updates to a verified green badge: **`✓ Signed & Committed to EHR Chart`**!
 
 
-### Test M: Clinical Trial & Protocol Matching Engine (Epic 8)
-1. On **John Doe's** patient card on the dashboard roster:
-   - Notice the amber badge: **`1 Trials`** (or in the AI chat drawer header: **`Trials`**).
-   - Click directly on the **`1 Trials`** button.
-2. The **Clinical Trial & Protocol Matching Engine Modal** opens:
-   - **Protocol Match Acuity:** Displays *"1 High-Probability Protocol Identified"*.
-   - **ARREST-HTN (NCT-05189241):** Notice the prominent **`96% MATCH`** badge, Phase III classification, condition *"Cardiovascular & Resistant Hypertension"*, and sponsor *"NHLBI"*.
-   - **Satisfied Inclusions Checklist:** Verified green checks (✓) for Age 45, SBP 174 mmHg, LVH (Sokolow-Lyon 48mm, CTR 0.61), and Lisinopril therapy.
-   - **Exclusion Status:** Verified *"No disqualifying exclusion criteria identified"*.
-   - **AI Protocol Matching Rationale:** Narrative detailing patient's severe refractory hypertension with objective target-organ hypertrophy.
-   - **Protocol Enrollment:** Click **`Refer Patient & Enroll in Trial`**.
-     - The status immediately updates to a verified green badge: **`✓ Patient Enrolled in Protocol`**!
-   - Close the modal (`×`).
-3. Now test **Autonomous AI Copilot Protocol Matching in Chat**:
-   - Open John Doe's AI Assistant chat drawer.
-   - Type in chat:
-     > *"Are there any clinical trials or experimental protocols that John Doe qualifies for?"*
-   - The AI Copilot autonomously executes the `matchClinicalTrials` tool and streams the **Clinical Trial & Protocol Eligibility Screener Generative UI Card**:
-     - Displays candidate protocols (ARREST-HTN, PEN-DESENS) with match percentages, satisfied inclusion criteria, and trial referral guidance.
-     - Displays the verified **`Enrolled`** status on ARREST-HTN.
-     - Click **`Inspect All Protocol Criteria in Clinical Trials Studio`** to launch the full modal!
-4. Test Exclusion Rules with **Robert Johnson**:
-   - Open Robert Johnson's card (Day 7 post-op appendectomy).
-   - Notice the trial matching engine flags **ONCO-PREVENT** as excluded with a red alert: *"CRITICAL EXCLUSION: Recent abdominal surgery within 30 days"*, validating hard safety rules!
-
----
-
-### Test K: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Epic 9)
+### Test M: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Epic 8)
 1. **In-App HIPAA Security Ledger & Compliance Inspector:**
    - In the top navigation bar, click the **`🛡️ HIPAA Audit Log`** button.
    - The **HIPAA Security Ledger & Compliance Audit Trail** modal opens:
      - **Audit Metrics:** Observe live counters for *Total Audited Events*, *AI Copilot Retrieval Logs*, *Clinical Scribe Sign-offs*, and *HL7 FHIR v4.0 Exports*.
-     - **Live Filter Toolbar:** Filter the table by Action (e.g. `VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `TRIAL_ENROLLMENT`, `VISION_INSPECTION`, `FHIR_EXPORT`) or search by clinician/MRN.
+     - **Live Filter Toolbar:** Filter the table by Action (e.g. `VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `VISION_INSPECTION`, `FHIR_EXPORT`) or search by clinician/MRN.
      - **Compliance Ledger Table:** Review exact UTC timestamps, action badges, actor attribution (`doctor@medintel.com`), target patient MRN (`MED-10084`), and client IP.
      - **Compliance Export:** Click **`Export CSV`** or **`Export Audit JSON`** to test downloading official compliance records for hospital security inspections and OCR audits.
    - Click **`Close Audit Inspector`**.
@@ -274,7 +247,6 @@ To access your patients and test the AI features:
        - 🩺 **Observations:** LOINC-coded vitals (Blood pressure panel `85354-9`, Heart rate `8867-4`, SpO2 `2708-6`).
        - 🩻 **Diagnostic Reports:** Radiology scans (Chest X-Ray, 12-lead ECG) mapped to DICOM modality `RAD`/`EC` and LOINC `18748-4`.
        - 📝 **Document References:** Clinical progress notes (LOINC `11506-3`) with base64-encoded SOAP narrative attachments.
-       - 🔬 **Research Subjects:** Precision protocol matches (ARREST-HTN) and consent status.
      - **Resource Inventory Tab:** Inspect individual FHIR resource JSON definitions.
      - **Raw FHIR JSON Tab:** View syntax-highlighted bundle JSON.
      - Click **`Copy JSON`** (copies full bundle to clipboard) or **`Download Bundle`** (downloads `FHIR_Bundle_Patient_1_John_Doe.json`).
@@ -286,7 +258,7 @@ To access your patients and test the AI features:
      > *"Export this patient's records as an HL7 FHIR bundle for electronic health exchange."*
    - The AI Copilot autonomously executes the `exportFhirBundle` tool and returns the **HL7® FHIR® R4 Interoperability Bundle Generative UI Card**:
      - Displays the verified US Core STU4 Release 4.0.1 badge.
-     - Displays compiled resource pill breakdown (Patient: 1, Observations, Diagnostic Scans, Clinical Notes, Research Subjects).
+     - Displays compiled resource pill breakdown (Patient: 1, Observations, Diagnostic Scans, Clinical Notes).
      - Displays validated LOINC standards.
      - Click **`Inspect FHIR Bundle & Download`** to launch the interactive viewer directly from the chat conversation!
    - This export action is automatically logged in the PostgreSQL `AuditLog` table under 45 CFR § 164.312(b).

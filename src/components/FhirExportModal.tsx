@@ -217,7 +217,7 @@ export function FhirExportModal({ isOpen, onClose, patient, onExportSuccess }: F
           ) : activeTab === "overview" ? (
             <div className="space-y-6">
               {/* Top Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-500/20">
                   <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                     Patient Profile
@@ -265,18 +265,6 @@ export function FhirExportModal({ isOpen, onClose, patient, onExportSuccess }: F
                     SOAP Clinical Notes
                   </div>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-500/20">
-                  <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                    Research Subjects
-                  </div>
-                  <div className="text-2xl font-black text-gray-900 dark:text-white mt-1">
-                    {resourceCounts["ResearchSubject"] || 0}
-                  </div>
-                  <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    Clinical Trial Protocols
-                  </div>
-                </div>
               </div>
 
               {/* Interoperability Specs & Metadata */}
@@ -315,9 +303,6 @@ export function FhirExportModal({ isOpen, onClose, patient, onExportSuccess }: F
                   </span>
                   <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
                     ✓ Base64 DocumentReference Attachments
-                  </span>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                    ✓ ClinicalTrials.gov Protocol Identifiers
                   </span>
                 </div>
               </div>
@@ -368,11 +353,6 @@ export function FhirExportModal({ isOpen, onClose, patient, onExportSuccess }: F
                         {res.code?.text && (
                           <div className="text-xs text-emerald-600 dark:text-emerald-400">
                             Coding: {res.code.text}
-                          </div>
-                        )}
-                        {res.study?.display && (
-                          <div className="text-xs text-amber-600 dark:text-amber-400">
-                            Study: {res.study.display}
                           </div>
                         )}
                       </div>

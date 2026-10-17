@@ -81,7 +81,6 @@ model Patient {
   vitalReadings VitalReading[]
   images      MedicalImage[]
   clinicalNotes ClinicalNote[]
-  trialMatches TrialMatch[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -150,47 +149,13 @@ model ClinicalNote {
   @@index([patientId, createdAt])
 }
 
-model ClinicalTrial {
-  id                String       @id // e.g. "NCT-05189241"
-  title             String
-  phase             String       // "Phase I", "Phase II", "Phase III", "Early Access"
-  condition         String
-  sponsor           String
-  status            String       @default("Recruiting") // "Recruiting", "Active", "Completed"
-  summary           String       @db.Text
-  inclusionCriteria String[]
-  exclusionCriteria String[]
-  targetBiomarkers  String[]
-  trialMatches      TrialMatch[]
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-}
-
-model TrialMatch {
-  id                  String        @id @default(cuid())
-  patientId           Int
-  patient             Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  trialId             String
-  trial               ClinicalTrial @relation(fields: [trialId], references: [id], onDelete: Cascade)
-  matchScore          Int           // 0 to 100%
-  status              String        @default("Candidate") // "Eligible", "Candidate", "Ineligible", "Enrolled"
-  matchedInclusions   String[]
-  unmatchedInclusions String[]
-  exclusionFlags      String[]
-  aiRationale         String        @db.Text
-  evaluatedAt         DateTime      @default(now())
-
-  @@unique([patientId, trialId])
-  @@index([patientId, matchScore])
-}
-
 model AuditLog {
   id           String   @id @default(cuid())
   userId       String?
   userEmail    String?
   patientId    Int?
-  action       String   // "VIEW_RECORD", "AI_COPILOT_QUERY", "SCRIBE_SOAP_COMMIT", "TRIAL_ENROLLMENT", "VISION_INSPECTION", "FHIR_EXPORT"
-  resourceType String   // "Patient", "Document", "VitalReading", "MedicalImage", "ClinicalNote", "TrialMatch", "FHIRBundle"
+  action       String   // "VIEW_RECORD", "AI_COPILOT_QUERY", "SCRIBE_SOAP_COMMIT", "VISION_INSPECTION", "FHIR_EXPORT"
+  resourceType String   // "Patient", "Document", "VitalReading", "MedicalImage", "ClinicalNote", "FHIRBundle"
   resourceId   String?
   details      String?  @db.Text
   ipAddress    String?  @default("127.0.0.1")

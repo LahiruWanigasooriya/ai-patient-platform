@@ -22,31 +22,24 @@ import {
   PhotoIcon,
   MicrophoneIcon,
   CheckBadgeIcon,
-  BeakerIcon,
   ArrowDownTrayIcon,
   DocumentDuplicateIcon
 } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Patient, Document as PatientDocument, VitalReading, MedicalImage, ClinicalNote, TrialMatch, ClinicalTrial } from "@prisma/client";
-import { addPatientDocument, createClinicalNote, enrollPatientInTrial } from "@/app/actions/patients";
+import { Patient, Document as PatientDocument, VitalReading, MedicalImage, ClinicalNote } from "@prisma/client";
+import { addPatientDocument, createClinicalNote } from "@/app/actions/patients";
 import { DocumentViewerModal } from "./DocumentViewerModal";
 import { VitalsTrajectoryModal } from "./VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "./ImageAnalysisModal";
 import { AmbientScribeModal } from "./AmbientScribeModal";
-import { ClinicalTrialsModal } from "./ClinicalTrialsModal";
 import { FhirExportModal } from "./FhirExportModal";
-
-export type TrialMatchWithTrial = TrialMatch & {
-  trial: ClinicalTrial;
-};
 
 export type PatientWithDocs = Patient & {
   documents?: PatientDocument[];
   vitalReadings?: VitalReading[];
   images?: MedicalImage[];
   clinicalNotes?: ClinicalNote[];
-  trialMatches?: TrialMatchWithTrial[];
 };
 
 interface ChatSidebarProps {
@@ -83,8 +76,6 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
   const [isImageAnalysisOpen, setIsImageAnalysisOpen] = useState(false);
   const [isScribeOpen, setIsScribeOpen] = useState(false);
   const [signedSoapNotes, setSignedSoapNotes] = useState<Record<string, boolean>>({});
-  const [isTrialsOpen, setIsTrialsOpen] = useState(false);
-  const [enrolledTrials, setEnrolledTrials] = useState<Record<string, boolean>>({});
   const [isFhirModalOpen, setIsFhirModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -196,14 +187,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                 <MicrophoneIcon className="w-3 h-3" />
                 <span>AI Scribe</span>
               </button>
-              <span>•</span>
-              <button
-                onClick={() => setIsTrialsOpen(true)}
-                className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center space-x-0.5 cursor-pointer"
-              >
-                <BeakerIcon className="w-3 h-3" />
-                <span>Trials</span>
-              </button>
+
             </div>
           )}
         </div>
@@ -279,21 +263,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
               )}
             </button>
           )}
-          {patient && (
-            <button
-              onClick={() => setIsTrialsOpen(true)}
-              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shadow-2xs hover:border-amber-400 transition cursor-pointer group"
-              title="Clinical Trial & Protocol Matching Engine"
-            >
-              <BeakerIcon className="w-3 h-3 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <span className="font-semibold">Clinical Trials</span>
-              {patient.trialMatches && patient.trialMatches.filter(m => m.matchScore >= 70).length > 0 && (
-                <span className="ml-0.5 px-1 bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 rounded-full text-[9px] font-bold">
-                  {patient.trialMatches.filter(m => m.matchScore >= 70).length} Match
-                </span>
-              )}
-            </button>
-          )}
+
         </div>
       )}
 
@@ -836,149 +806,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
 
-                    // 8. Clinical Trial Protocol Matching Generative UI Card
-                    if (toolName === "matchClinicalTrials") {
-                      const res = output || {};
-                      const trialsList = res.trials || [];
-
-                      return (
-                        <div key={index} className="my-3 p-4 rounded-xl bg-gradient-to-br from-gray-900 to-gray-950 border border-amber-500/30 text-gray-100 shadow-xl shadow-amber-950/20 text-xs">
-                          {/* Header */}
-                          <div className="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-7 h-7 rounded-lg bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                                <BeakerIcon className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-white text-xs tracking-tight">
-                                  Clinical Trial & Protocol Eligibility Screener
-                                </h4>
-                                <span className="text-[10px] text-gray-400 font-mono">
-                                  {res.patientName} • {res.evaluatedAt || "Evaluated"}
-                                </span>
-                              </div>
-                            </div>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                              {res.eligibleCount || 0} Eligible Protocol{res.eligibleCount !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-
-                          {/* Recommendation Banner */}
-                          {res.recommendation && (
-                            <div className="mb-3 p-2.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-200 leading-relaxed flex items-start space-x-2">
-                              <SparklesIcon className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <strong>Clinical Trial Referral Guidance: </strong>
-                                {res.recommendation}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Trials List */}
-                          <div className="space-y-2.5 mb-3">
-                            {trialsList.slice(0, 3).map((t: any, ti: number) => {
-                              const isEnrolled = enrolledTrials[t.trialId] || t.status === "Enrolled";
-                              const isEligible = t.matchScore >= 70;
-                              const hasExcl = t.exclusionFlags && t.exclusionFlags.length > 0;
-
-                              return (
-                                <div key={ti} className="p-3 rounded-lg bg-gray-900/90 border border-gray-800 hover:border-gray-700 transition">
-                                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                                    <div>
-                                      <div className="flex items-center space-x-1.5 mb-0.5">
-                                        <span className="font-mono text-[10px] font-bold text-amber-400">
-                                          {t.trialId}
-                                        </span>
-                                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold">
-                                          {t.phase}
-                                        </span>
-                                      </div>
-                                      <h5 className="font-bold text-gray-200 text-xs leading-tight">
-                                        {t.trialTitle}
-                                      </h5>
-                                    </div>
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap ${
-                                      isEnrolled 
-                                        ? "bg-emerald-600 text-white border-emerald-500"
-                                        : isEligible 
-                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
-                                        : "bg-red-500/10 text-red-400 border-red-500/30"
-                                    }`}>
-                                      {t.matchScore}% MATCH
-                                    </span>
-                                  </div>
-
-                                  {/* Matched Inclusions */}
-                                  {t.matchedInclusions && t.matchedInclusions.length > 0 && (
-                                    <div className="mt-2 text-[10px] text-gray-300 space-y-0.5">
-                                      {t.matchedInclusions.slice(0, 2).map((inc: string, inci: number) => (
-                                        <div key={inci} className="flex items-center space-x-1 text-emerald-400">
-                                          <span>✓</span>
-                                          <span className="truncate">{inc}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* Exclusion warning if any */}
-                                  {hasExcl && (
-                                    <div className="mt-1.5 text-[10px] text-red-400 font-medium">
-                                      ⚠ {t.exclusionFlags[0]}
-                                    </div>
-                                  )}
-
-                                  {/* Inline Enroll Action */}
-                                  <div className="mt-2.5 pt-2 border-t border-gray-800 flex items-center justify-between">
-                                    <span className="text-[9px] text-gray-500 truncate max-w-[160px]">
-                                      Sponsor: {t.sponsor}
-                                    </span>
-                                    {isEnrolled ? (
-                                      <span className="text-[10px] font-bold text-emerald-400 flex items-center space-x-1">
-                                        <CheckBadgeIcon className="w-3.5 h-3.5" />
-                                        <span>Enrolled</span>
-                                      </span>
-                                    ) : (
-                                      <button
-                                        onClick={async () => {
-                                          if (!patientId) return;
-                                          try {
-                                            await enrollPatientInTrial(patientId, t.trialId);
-                                            setEnrolledTrials(prev => ({ ...prev, [t.trialId]: true }));
-                                            if (onDocumentUploaded) onDocumentUploaded();
-                                          } catch (err) {
-                                            console.error("Failed to enroll in trial:", err);
-                                          }
-                                        }}
-                                        disabled={hasExcl}
-                                        className={`px-2.5 py-1 rounded text-[10px] font-bold flex items-center space-x-1 transition cursor-pointer ${
-                                          hasExcl 
-                                            ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
-                                            : "bg-amber-600 hover:bg-amber-500 text-white"
-                                        }`}
-                                      >
-                                        <CheckBadgeIcon className="w-3 h-3" />
-                                        <span>Enroll in Protocol</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Footer Button: Open Full Modal */}
-                          <button
-                            onClick={() => setIsTrialsOpen(true)}
-                            className="w-full py-1.5 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-amber-500/20"
-                          >
-                            <BeakerIcon className="w-3.5 h-3.5" />
-                            <span>Inspect All Protocol Criteria in Clinical Trials Studio</span>
-                          </button>
-                        </div>
-                      );
-                    }
-
-                    // 9. HL7 FHIR Interoperability Bundle Generative UI Card
+                    // 8. HL7 FHIR Interoperability Bundle Generative UI Card
                     if (toolName === "exportFhirBundle") {
                       const fhir = output || {};
                       const counts = fhir.resourceCounts || {};
@@ -1039,10 +867,6 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                                 <span>📝 Clinical Notes:</span>
                                 <strong className="text-rose-400">{counts.DocumentReference || 0}</strong>
                               </span>
-                              <span className="col-span-2 px-2 py-1 rounded bg-gray-900/90 border border-gray-800 text-gray-300 flex items-center justify-between">
-                                <span>🔬 Research Subjects:</span>
-                                <strong className="text-amber-400">{counts.ResearchSubject || 0} Trial Protocol(s)</strong>
-                              </span>
                             </div>
                           </div>
 
@@ -1066,7 +890,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
 
-                    // 10. Search Documents Citation
+                    // 9. Search Documents Citation
                     if (toolName === "searchDocuments") {
                       return (
                         <div 
@@ -1188,16 +1012,6 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
         onClose={() => setIsScribeOpen(false)}
         patient={patient || null}
         onNoteSaved={() => {
-          if (onDocumentUploaded) onDocumentUploaded();
-        }}
-      />
-
-      {/* Clinical Trial Protocol Matching Modal */}
-      <ClinicalTrialsModal
-        isOpen={isTrialsOpen}
-        onClose={() => setIsTrialsOpen(false)}
-        patient={patient || null}
-        onPatientUpdated={() => {
           if (onDocumentUploaded) onDocumentUploaded();
         }}
       />

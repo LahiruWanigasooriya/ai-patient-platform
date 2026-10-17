@@ -25,8 +25,7 @@ The development of the platform is broken down into four distinct, sequential Ep
 - **Epic 5: Clinical Document Viewer, Pharmacological Safety Engine & Longitudinal Vitals Trending (Completed):** Adding in-app PDF & semantic chunk citation inspection, an agentic drug-drug interaction & allergy contraindication engine, and PostgreSQL-persisted longitudinal vitals curves.
 - **Epic 6: Multi-Modal Medical Vision & Diagnostic Imaging (Completed):** Integrating computer-aided diagnostic imaging, high-resolution radiology inspection with inverted contrast filters, and multi-modal clinical reasoning for Chest X-Rays, 12-lead ECGs, and lab panels.
 - **Epic 7: Ambient AI Scribe & Clinical Voice Dictation (Completed):** Implementing audio-to-SOAP synthesis, structured clinical quadrant parsing, ICD-10/CPT billing suggestions, and human-in-the-loop EHR note signing.
-- **Epic 8: Clinical Trial & Protocol Matching Engine (Completed):** Autonomous multi-center protocol matcher evaluating inclusion/exclusion criteria against patient biomarkers, computing 0-100% eligibility scores, and direct protocol enrollment.
-- **Epic 9: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed):** Immutable HIPAA § 164.312(b) access ledger, in-app compliance inspector modal, and standardized HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, DocumentReference, and ResearchSubject resources for EHR ingestion.
+- **Epic 8: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed):** Immutable HIPAA § 164.312(b) access ledger, in-app compliance inspector modal, and standardized HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, and DocumentReference resources for EHR ingestion.
 
 ---
 ## Epic 0: Project Scaffolding & Porting (Completed)
@@ -287,52 +286,14 @@ We implemented a robust persistence layer and authentication framework to transi
 
 ---
 
-## Epic 8: Clinical Trial & Protocol Matching Engine (Completed)
+## Epic 8: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed)
 
-*Successfully engineered an autonomous clinical trial and precision protocol matching engine that parses multi-center clinical trials, maps complex inclusion and exclusion criteria against patient biomarkers, vitals trajectories, and surgical histories, computes quantitative eligibility scores (0-100%), and facilitates direct physician protocol enrollment.*
-
-**Completed Steps:**
-1. **Relational Trial Architecture (`prisma/schema.prisma` & `src/app/actions/patients.ts`):**
-   - Implemented `ClinicalTrial` and `TrialMatch` models in PostgreSQL:
-     - `ClinicalTrial`: `id` (e.g. `NCT-05189241`), `title`, `phase`, `condition`, `sponsor`, `status`, `summary`, `inclusionCriteria`, `exclusionCriteria`, `targetBiomarkers`.
-     - `TrialMatch`: `patientId`, `trialId`, `matchScore` (0-100%), `status` (`"Eligible"`, `"Candidate"`, `"Ineligible"`, `"Enrolled"`), `matchedInclusions`, `unmatchedInclusions`, `exclusionFlags`, `aiRationale`, `evaluatedAt`.
-   - Updated `Patient` relation `trialMatches TrialMatch[]` with cascade delete.
-   - Synchronized schema via `npx prisma db push && npx prisma generate`.
-   - Updated `getPatients()` to include `trialMatches: { include: { trial: true }, orderBy: { matchScore: 'desc' } }`.
-   - Added server actions: `getClinicalTrials()`, `getPatientTrialMatches(patientId)`, and `enrollPatientInTrial(patientId, trialId)`.
-2. **Benchmark Multi-Center Clinical Trials Seeding (`prisma/seed_trials.ts`):**
-   - Seeded 4 benchmark clinical trials covering cardiovascular, immunological, respiratory, and oncological domains:
-     - `NCT-05189241`: ARREST-HTN Phase III Trial (NHLBI) - Multi-pathway mineralocorticoid/calcium blockade in resistant hypertension. (John Doe: 96% Match).
-     - `NCT-04982133`: PEN-DESENS Phase II Trial (NIAID) - Sublingual peptide desensitization in high-titer beta-lactam IgE allergy. (Jane Smith: 98% Match).
-     - `NCT-05341209`: BIO-AIR Phase III Trial - Anti-IL-5R alpha monoclonal biologic in refractory eosinophilic asthma. (Emily Davis: 92% Match).
-     - `NCT-04721908`: ONCO-PREVENT Phase II Trial - cfDNA methylation surveillance in gastrointestinal neoplasia. (Robert Johnson: 35% Match, Excluded due to recent surgery within 30 days).
-3. **Clinical Trial & Protocol Matching Modal (`src/components/ClinicalTrialsModal.tsx`):**
-   - High-fidelity precision medicine modal featuring:
-     - Patient acuity header with high-match protocol count badge.
-     - Protocol filter tabs: "All Trials", "Eligible Only (Score >= 70%)", and "Enrolled".
-     - Granular trial cards displaying Match Score dial (96% Prime Eligibility), Phase badge, Sponsor, and target biomarkers.
-     - Dual-column criteria evaluation: Satisfied Inclusion Criteria (✓) vs Disqualifying Exclusion Flags (×).
-     - AI Protocol Matching Rationale explaining the physiological and pharmacological compatibility.
-     - Direct "Refer Patient & Enroll in Trial" button that commits enrollment to PostgreSQL and updates patient state.
-4. **AI Copilot Protocol Matching Tool & Generative UI (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
-   - Added `matchClinicalTrials` agentic tool with Zod schema in chat API route.
-   - Built the **Clinical Trial & Protocol Eligibility Screener** Generative UI Card in `ChatSidebar.tsx`:
-     - Displays top candidate protocols, match percentages, satisfied inclusion checklists, and exclusion alerts.
-     - Features in-stream "Enroll in Protocol" button and "Inspect All Protocol Criteria in Clinical Trials Studio" trigger.
-5. **Dashboard Roster & Header Integration (`src/app/page.tsx` & `src/components/ChatSidebar.tsx`):**
-   - Added interactive `🎯 X Trials` trigger button to each patient card on the roster.
-   - Added `Trials` quick link in the chat header and document chips bar.
-
----
-
-## Epic 9: HIPAA Audit Trails & HL7 FHIR Interoperability Export (Completed)
-
-*Successfully architected and deployed an immutable HIPAA access ledger conforming to 45 CFR § 164.312(b) audit control standards, an interactive compliance inspector modal with CSV/JSON ledger exports, and a standard HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, DocumentReference, and ResearchSubject resources for hospital electronic health record (EHR) ingestion.*
+*Successfully architected and deployed an immutable HIPAA access ledger conforming to 45 CFR § 164.312(b) audit control standards, an interactive compliance inspector modal with CSV/JSON ledger exports, and a standard HL7 FHIR Release 4.0.1 collection bundle generator exporting Patient, Observation, DiagnosticReport, and DocumentReference resources for hospital electronic health record (EHR) ingestion.*
 
 **Completed Steps:**
 1. **Relational HIPAA Ledger Schema (`prisma/schema.prisma`):**
    - Added `AuditLog` model to PostgreSQL:
-     - Fields: `id`, `userId`, `userEmail`, `patientId`, `action` (`"VIEW_RECORD"`, `"AI_COPILOT_QUERY"`, `"SCRIBE_SOAP_COMMIT"`, `"TRIAL_ENROLLMENT"`, `"VISION_INSPECTION"`, `"FHIR_EXPORT"`), `resourceType` (`"Patient"`, `"Document"`, `"VitalReading"`, `"MedicalImage"`, `"ClinicalNote"`, `"TrialMatch"`, `"FHIRBundle"`), `resourceId`, `details`, `ipAddress`, `userAgent`, `timestamp`.
+     - Fields: `id`, `userId`, `userEmail`, `patientId`, `action` (`"VIEW_RECORD"`, `"AI_COPILOT_QUERY"`, `"SCRIBE_SOAP_COMMIT"`, `"VISION_INSPECTION"`, `"FHIR_EXPORT"`), `resourceType` (`"Patient"`, `"Document"`, `"VitalReading"`, `"MedicalImage"`, `"ClinicalNote"`, `"FHIRBundle"`), `resourceId`, `details`, `ipAddress`, `userAgent`, `timestamp`.
      - Compound B-tree indices on `[patientId, timestamp]` and `[action, timestamp]`.
    - Synchronized schema via `npx prisma db push && npx prisma generate`.
 2. **Server Actions & Cryptographic Audit Helper (`src/app/actions/patients.ts`):**
@@ -344,15 +305,14 @@ We implemented a robust persistence layer and authentication framework to transi
      - Maps `Observation` vitals with canonical LOINC codes: `85354-9` (BP panel), `8480-6` (Systolic), `8462-4` (Diastolic), `8867-4` (Heart rate), `2708-6` (SpO2).
      - Maps `DiagnosticReport` imaging with DICOM modality codes (`RAD`, `EC`, `LAB`), LOINC `18748-4`, and SVG presentation links.
      - Maps `DocumentReference` clinical SOAP notes with LOINC `11506-3` and base64-encoded structured clinical progress note attachments.
-     - Maps `ResearchSubject` clinical trial matches with ClinicalTrials.gov identifiers and consent status.
      - Automatically logs a `FHIR_EXPORT` audit action upon bundle compilation.
 3. **Historical Audit Ledger Seeding (`prisma/seed_audit.ts`):**
-   - Seeded 10 verified historical compliance audit events across all clinical touchpoints (chart access, DICOM contrast filtering, semantic vector retrieval, ambient scribe SOAP sign-off, trial protocol enrollment, and prior HIE FHIR export).
+   - Seeded 10 verified historical compliance audit events across clinical touchpoints (chart access, DICOM contrast filtering, semantic vector retrieval, ambient scribe SOAP sign-off, and prior HIE FHIR export).
 4. **Interactive In-App HIPAA Audit Trail Modal (`src/components/AuditTrailModal.tsx`):**
    - High-fidelity compliance inspector:
      - 4 real-time KPI metrics: Total Audited Events, AI Copilot Accesses, Clinical Scribe Sign-offs, HL7 FHIR Exports.
      - Free-text search across actor, target patient, IP address, and details.
-     - Action filter dropdown (`VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `TRIAL_ENROLLMENT`, `VISION_INSPECTION`, `FHIR_EXPORT`).
+     - Action filter dropdown (`VIEW_RECORD`, `AI_COPILOT_QUERY`, `SCRIBE_SOAP_COMMIT`, `VISION_INSPECTION`, `FHIR_EXPORT`).
      - Audit table with local/UTC timestamps, color-coded badges, target resources, actor verification, and client IP addresses.
      - "Export CSV" and "Export Audit JSON" buttons for statutory HIPAA compliance officer inspections and OCR audits.
 5. **HL7 FHIR Bundle Modal & Inspector (`src/components/FhirExportModal.tsx`):**
@@ -361,7 +321,7 @@ We implemented a robust persistence layer and authentication framework to transi
      - Real-time compilation of patient resources with LOINC and DICOM standards badges.
      - One-click "Copy JSON" to clipboard and instant download of `.json` collection bundle.
 6. **AI Copilot FHIR Export Tool & Generative UI (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
-   - Added `exportFhirBundle` tool in chat API route with prompt instruction 10.
+   - Added `exportFhirBundle` tool in chat API route with prompt instruction 9.
    - Built the **HL7® FHIR® R4 Interoperability Bundle** Generative UI Card in `ChatSidebar.tsx`:
      - Displays compiled health resources pills, MRN, LOINC standards, and direct "Inspect FHIR Bundle & Download" trigger.
 7. **Dashboard Integration (`src/app/page.tsx`):**
