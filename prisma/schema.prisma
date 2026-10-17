@@ -79,6 +79,7 @@ model Patient {
   age         Int
   status      String   // "Critical", "Stable", "Review"
   summary     String   @db.Text
+  image       String?  @db.Text // Patient profile avatar URL or base64
   
   // A patient belongs to a specific doctor (User) to enforce multi-tenancy later
   doctorId    String?

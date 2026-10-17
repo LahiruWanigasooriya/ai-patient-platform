@@ -75,6 +75,7 @@ export async function createPatient(data: {
   age: number;
   status: string;
   summary: string;
+  image?: string | null;
 }) {
   const session = await auth();
   if (!session?.user?.email) {
@@ -89,19 +90,109 @@ export async function createPatient(data: {
     throw new Error("Doctor profile not found.");
   }
 
-  return await prisma.patient.create({
+  const patient = await prisma.patient.create({
     data: {
       name: data.name,
       age: Number(data.age),
       status: data.status,
       summary: data.summary,
+      image: data.image || null,
       doctorId: user.id,
     },
     include: {
       documents: true,
       vitalReadings: true,
+      images: true,
+      clinicalNotes: true,
     },
   });
+
+  await logAuditAction({
+    patientId: patient.id,
+    action: "ADMIT_PATIENT",
+    resourceType: "Patient",
+    resourceId: String(patient.id),
+    details: `Admitted new patient ${patient.name} (Age: ${patient.age}, Acuity: ${patient.status})`,
+  });
+
+  return patient;
+}
+
+export async function updatePatient(patientId: number, data: {
+  name: string;
+  age: number;
+  status: string;
+  summary: string;
+  image?: string | null;
+}) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const existing = await prisma.patient.findUnique({
+    where: { id: patientId },
+  });
+
+  if (!existing) {
+    throw new Error("Patient not found.");
+  }
+
+  const updated = await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      name: data.name,
+      age: Number(data.age),
+      status: data.status,
+      summary: data.summary,
+      image: data.image !== undefined ? data.image : existing.image,
+    },
+    include: {
+      documents: { orderBy: { createdAt: 'desc' } },
+      vitalReadings: { orderBy: { recordedAt: 'asc' } },
+      images: { orderBy: { createdAt: 'desc' } },
+      clinicalNotes: { orderBy: { createdAt: 'desc' } },
+    },
+  });
+
+  await logAuditAction({
+    patientId: updated.id,
+    action: "UPDATE_PATIENT_RECORD",
+    resourceType: "Patient",
+    resourceId: String(updated.id),
+    details: `Updated clinical chart for patient ${updated.name} (Age: ${updated.age}, Acuity: ${updated.status})`,
+  });
+
+  return updated;
+}
+
+export async function deletePatient(patientId: number) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const existing = await prisma.patient.findUnique({
+    where: { id: patientId },
+  });
+
+  if (!existing) {
+    throw new Error("Patient not found.");
+  }
+
+  await logAuditAction({
+    patientId: existing.id,
+    action: "DELETE_PATIENT_RECORD",
+    resourceType: "Patient",
+    resourceId: String(existing.id),
+    details: `Discharged and deleted patient record for ${existing.name} (ID: #${existing.id})`,
+  });
+
+  await prisma.patient.delete({
+    where: { id: patientId },
+  });
+
+  return { success: true };
 }
 
 export async function addVitalReading(patientId: number, data: {

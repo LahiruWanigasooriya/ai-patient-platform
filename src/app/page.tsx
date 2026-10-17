@@ -34,7 +34,9 @@ import {
   Cog6ToothIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { getPatients } from "./actions/patients";
+import { getPatients, deletePatient } from "./actions/patients";
+import { EditPatientModal } from "@/components/EditPatientModal";
+import { MoreVertical, Edit2, Trash2, FileText, Scan, TrendingUp, Mic, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const { data: session } = useSession();
@@ -56,6 +58,39 @@ export default function Dashboard() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [profileOverride, setProfileOverride] = useState<{ name: string | null; image: string | null } | null>(null);
+
+  // Edit, Delete & Card 3-dots Menu States
+  const [activeMenuPatientId, setActiveMenuPatientId] = useState<number | null>(null);
+  const [editingPatient, setEditingPatient] = useState<PatientWithDocs | null>(null);
+  const [deletingPatient, setDeletingPatient] = useState<PatientWithDocs | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Close 3-dots dropdown when clicking outside
+  useEffect(() => {
+    const handleWindowClick = () => setActiveMenuPatientId(null);
+    if (activeMenuPatientId !== null) {
+      window.addEventListener("click", handleWindowClick);
+      return () => window.removeEventListener("click", handleWindowClick);
+    }
+  }, [activeMenuPatientId]);
+
+  const handleConfirmDelete = async () => {
+    if (!deletingPatient) return;
+    try {
+      setIsDeleting(true);
+      await deletePatient(deletingPatient.id);
+      if (selectedPatient === deletingPatient.id) {
+        setSelectedPatient(null);
+      }
+      setDeletingPatient(null);
+      refreshPatients();
+    } catch (err) {
+      console.error("Failed to delete patient record:", err);
+      alert("Failed to delete patient record. Please check backend connection.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const currentUserName = profileOverride?.name ?? session?.user?.name ?? "Dr. Gregory House";
   const currentUserImage = profileOverride?.image ?? session?.user?.image ?? null;
@@ -244,7 +279,7 @@ export default function Dashboard() {
                 </p>
                 
                 {/* Search Bar */}
-                <div className="w-full max-w-2xl relative z-10 group">
+                <div className="w-full max-w-4xl relative z-10 group">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
                   </div>
@@ -267,20 +302,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Warning Banner */}
-              <div className="max-w-7xl mx-auto px-6 mt-6">
-                <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400 p-4 rounded-r-xl flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center space-x-3">
-                    <ShieldCheckIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <p className="text-xs text-amber-900 dark:text-amber-200 font-medium">
-                      <strong>Clinical Decision Support Protocol:</strong> MedIntel features in-app PDF citation inspection, DDI drug interaction surveillance, and longitudinal physiological trajectory modeling. All insights must be cross-verified by licensed medical staff.
-                    </p>
-                  </div>
-                </div>
-              </div>
 
               {/* Patient Roster Header & Controls */}
-              <div className="max-w-7xl mx-auto px-6 py-8">
+              <div className="max-w-[1500px] mx-auto px-6 py-8">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
@@ -345,127 +369,207 @@ export default function Dashboard() {
                     <div 
                       key={patient.id} 
                       onClick={() => setSelectedPatient(patient.id)}
-                      className={`bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer group flex flex-col ${
+                      className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 sm:p-6 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer group flex flex-col justify-between relative ${
                         selectedPatient === patient.id ? 'ring-2 ring-emerald-500 border-emerald-500' : ''
                       }`}
                     >
-                      {/* Card Header */}
-                      <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-start">
-                        <div>
-                          <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                            {patient.name}
-                          </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Age: {patient.age} • Medical ID: #{patient.id}0084
-                          </p>
+                      <div>
+                        {/* Top Area: Profile Pic, Name/Age/Medical ID, Status & 3-Dots */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          {/* Left: Avatar + Details */}
+                          <div className="flex items-start space-x-3.5 min-w-0">
+                            {/* Profile Picture */}
+                            <div className="w-[72px] h-[72px] rounded-full overflow-hidden flex-shrink-0 bg-[#a3a3a3] flex items-center justify-center shadow-2xs">
+                              {patient.image ? (
+                                <img
+                                  src={patient.image}
+                                  alt={patient.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <svg className="w-[66px] h-[66px] text-white translate-y-2" viewBox="0 0 24 24" fill="currentColor">
+                                  <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* Name, Age, Medical ID */}
+                            <div className="min-w-0 pt-0.5">
+                              <h4 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight truncate group-hover:text-emerald-600 transition-colors">
+                                {patient.name}
+                              </h4>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">
+                                Age : {patient.age}
+                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 font-normal">
+                                Medical ID : #{patient.id}0084
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Right: Status Pill & 3-Dots Menu */}
+                          <div className="flex items-start space-x-2 flex-shrink-0 relative">
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs text-gray-400 dark:text-gray-500 font-normal mb-1">
+                                Status
+                              </span>
+                              <span className={`text-xs font-semibold px-4 py-1 rounded-full text-white shadow-2xs ${
+                                patient.status === 'Critical' 
+                                  ? 'bg-[#ff3b30]' : 
+                                patient.status === 'Review' 
+                                  ? 'bg-[#ff9500]' : 
+                                  'bg-[#34c759]'
+                              }`}>
+                                {patient.status}
+                              </span>
+                            </div>
+
+                            {/* 3-Dots Menu Button */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuPatientId(activeMenuPatientId === patient.id ? null : patient.id);
+                                }}
+                                className="p-1 -mr-1 text-gray-900 dark:text-gray-100 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+                                title="Patient Options"
+                              >
+                                <MoreVertical className="w-5 h-5 stroke-[2.5]" />
+                              </button>
+
+                              {/* Dropdown Popup Window */}
+                              {activeMenuPatientId === patient.id && (
+                                <div 
+                                  className="absolute right-0 top-8 z-30 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuPatientId(null);
+                                      setEditingPatient(patient);
+                                    }}
+                                    className="w-full flex items-center space-x-2.5 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition cursor-pointer text-left"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-gray-500" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuPatientId(null);
+                                      setDeletingPatient(patient);
+                                    }}
+                                    className="w-full flex items-center space-x-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer text-left"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
-                          patient.status === 'Critical' 
-                            ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400' : 
-                          patient.status === 'Stable' 
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 
-                            'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
-                        }`}>
-                          {patient.status}
-                        </span>
-                      </div>
-                      
-                      {/* Card Body */}
-                      <div className="p-6 flex-1">
-                        <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed line-clamp-3">
+
+                        {/* Middle: Patient Clinical Summary */}
+                        <p className="text-sm text-[#8e8e93] dark:text-gray-400 font-normal leading-relaxed line-clamp-3 mb-4">
                           {patient.summary}
                         </p>
                       </div>
-                      
-                      {/* Card Footer with Vitals Trajectory & Document Viewer Triggers */}
-                      <div className="bg-gray-50/70 dark:bg-gray-800/40 p-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
-                        <div className="flex items-center space-x-2">
-                          {patient.documents && patient.documents.length > 0 ? (
+
+                      <div>
+                        {/* Thin Divider Line */}
+                        <div className="border-t border-gray-200/80 dark:border-gray-800 mb-4" />
+
+                        {/* Bottom Footer: 2-Column Metrics Grid & Get FHIR Action */}
+                        <div className="flex items-center justify-between">
+                          {/* 2-Column Metrics with Lucide Icons */}
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-gray-600 dark:text-gray-300">
+                            {/* Records */}
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setViewingDoc({
-                                  fileName: patient.documents![0].fileName,
-                                  patientId: patient.id,
-                                  patientName: patient.name,
-                                });
+                                if (patient.documents && patient.documents.length > 0) {
+                                  setViewingDoc({
+                                    fileName: patient.documents[0].fileName,
+                                    patientId: patient.id,
+                                    patientName: patient.name,
+                                  });
+                                }
                               }}
-                              className="flex items-center text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
-                              title="Click to inspect PDF & ChromaDB citations"
+                              className="flex items-center space-x-2.5 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer text-left"
+                              title="Inspect medical records"
                             >
-                              <DocumentTextIcon className="w-4 h-4 mr-1 text-emerald-500" />
-                              <span>{patient.documents.length} Records</span>
+                              <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                              <span className="font-normal">{patient.documents?.length || 0} Records</span>
                             </button>
-                          ) : (
-                            <span className="text-gray-400">0 Records</span>
-                          )}
 
-                          <span>•</span>
+                            {/* Scans */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageAnalysisPatient(patient);
+                              }}
+                              className="flex items-center space-x-2.5 hover:text-cyan-600 dark:hover:text-cyan-400 transition cursor-pointer text-left"
+                              title="View diagnostic imaging & radiology scans"
+                            >
+                              <Scan className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                              <span className="font-normal">{patient.images?.length || 0} Scans</span>
+                            </button>
 
-                          {/* Vitals Trajectory Trigger */}
+                            {/* Vitals / Curve */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTrajectoryPatient(patient);
+                              }}
+                              className="flex items-center space-x-2.5 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer text-left"
+                              title="View vitals trajectory curve"
+                            >
+                              <TrendingUp className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                              <span className="font-normal">{patient.vitalReadings?.length || 0} Records</span>
+                            </button>
+
+                            {/* Notes */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setScribePatient(patient);
+                              }}
+                              className="flex items-center space-x-2.5 hover:text-purple-600 dark:hover:text-purple-400 transition cursor-pointer text-left"
+                              title="Ambient AI Scribe & Clinical Voice Notes"
+                            >
+                              <Mic className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                              <span className="font-normal">{patient.clinicalNotes?.length || 0} Notes</span>
+                            </button>
+                          </div>
+
+                          {/* Right: Stacked Sheets Icon & Get FHIR */}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTrajectoryPatient(patient);
-                            }}
-                            className="flex items-center text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
-                            title="View longitudinal vitals trajectory curve"
-                          >
-                            <ArrowTrendingUpIcon className="w-3.5 h-3.5 mr-0.5" />
-                            <span>Curve</span>
-                          </button>
-
-                          {/* Scans Trigger */}
-                          {patient.images && patient.images.length > 0 && (
-                            <>
-                              <span>•</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setImageAnalysisPatient(patient);
-                                }}
-                                className="flex items-center text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
-                                title="View diagnostic radiographs & medical vision scans"
-                              >
-                                <PhotoIcon className="w-3.5 h-3.5 mr-0.5" />
-                                <span>{patient.images.length} Scans</span>
-                              </button>
-                            </>
-                          )}
-
-                          <span>•</span>
-
-                          {/* Ambient AI Scribe & Notes Trigger */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setScribePatient(patient);
-                            }}
-                            className="flex items-center text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
-                            title="Ambient AI Scribe & Clinical Voice Dictation"
-                          >
-                            <MicrophoneIcon className="w-3.5 h-3.5 mr-0.5" />
-                            <span>{patient.clinicalNotes?.length || 0} Notes</span>
-                          </button>
-
-                          <span>•</span>
-
-                          {/* HL7 FHIR Interoperability Export Trigger */}
-                          <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setFhirExportPatient(patient);
                             }}
-                            className="flex items-center text-teal-600 dark:text-teal-400 hover:underline font-semibold cursor-pointer"
-                            title="Export standardized HL7 FHIR v4.0 Bundle"
+                            className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer pl-2 group/fhir flex-shrink-0"
+                            title="Export HL7 FHIR Release 4.0 Bundle"
                           >
-                            <DocumentDuplicateIcon className="w-3.5 h-3.5 mr-0.5" />
-                            <span>FHIR</span>
+                            <svg className="w-7 h-7 text-gray-600 dark:text-gray-400 group-hover/fhir:text-emerald-600 dark:group-hover/fhir:text-emerald-400 transition flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <rect x="7" y="6" width="13" height="15" rx="2" />
+                              <path d="M5 18H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              <line x1="10" y1="10" x2="17" y2="10" />
+                              <line x1="10" y1="13" x2="17" y2="13" />
+                              <line x1="10" y1="16" x2="14" y2="16" />
+                            </svg>
+                            <span className="text-base font-normal">Get FHIR</span>
                           </button>
-                        </div>
-
-                        <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
-                          <span>AI Chat &rarr;</span>
                         </div>
                       </div>
                     </div>
@@ -940,6 +1044,64 @@ export default function Dashboard() {
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
       />
+
+      {/* Edit Patient Modal */}
+      <EditPatientModal
+        isOpen={!!editingPatient}
+        onClose={() => setEditingPatient(null)}
+        patient={editingPatient}
+        onPatientUpdated={refreshPatients}
+      />
+
+      {/* Delete Patient Confirmation Dialog */}
+      {deletingPatient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Patient Record</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">HIPAA Protected Clinical Data Removal</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-gray-900 dark:text-white">{deletingPatient.name}</strong> (Medical ID: #{deletingPatient.id}0084)? All associated documents, vitals curves, diagnostic scans, and clinical notes will be removed from PostgreSQL and ChromaDB.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setDeletingPatient(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Patient</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
     </div>
   );

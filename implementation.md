@@ -407,3 +407,32 @@ We implemented a robust persistence layer and authentication framework to transi
 2. **Authentication Screen Navigation ([login/page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/login/page.tsx)):**
    - Replaced plain text heading with the official branded logo wrapped in a translucent frosted backdrop (`bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-lg border border-white/20`) for optimal contrast against the photographic background.
    - Linked directly to the root route (`/`) with smooth scaling on hover.
+
+---
+
+## UI/UX Enhancement: Patient Card Redesign, Lucide Icons & Clinical Record Management
+
+*Overhauled the patient card to 100% replicate the requested clinical card design using Lucide icons, added patient profile avatar support to PostgreSQL, integrated contextual 3-dots Edit/Delete menus with confirmation safeguards, and enabled in-modal document uploads.*
+
+**Components & Architecture:**
+1. **Patient Schema & PostgreSQL Synchronization ([schema.prisma](file:///F:/My%20Projects/ai-patient-platform/prisma/schema.prisma)):**
+   - Added `image String? @db.Text` field to the `Patient` model.
+   - Pushed schema to database via `prisma db push` and regenerated the Prisma client.
+2. **Server Actions for Clinical CRUD ([actions/patients.ts](file:///F:/My%20Projects/ai-patient-platform/src/app/actions/patients.ts)):**
+   - `createPatient`: Extended to accept and store optional profile photo URL/base64 data with audit log entry `ADMIT_PATIENT`.
+   - `updatePatient`: Server action to update clinical attributes (name, age, acuity status, summary, and profile photo) with audit log entry `UPDATE_PATIENT_RECORD`.
+   - `deletePatient`: Server action with cascading record cleanup and immutable audit log entry `DELETE_PATIENT_RECORD`.
+3. **Pixel-Perfect Patient Card ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx)):**
+   - **Header Section:** Circular patient avatar (`72px`) with silhouette fallback, large patient name, `Age : {age}`, and `Medical ID : #{id}0084`.
+   - **Acuity & Actions:** "Status" label with colored status pill (`#ff3b30` for Critical, `#ff9500` for Review, `#34c759` for Stable), and a vertical 3-dots icon button (`MoreVertical` from Lucide).
+   - **Context Menu:** 3-dots popup featuring "Edit" (opens edit modal) and "Delete" (triggers confirmation modal), with outside-click dismissal.
+   - **Clinical Summary:** Styled paragraph text with subtle gray tint and line clamping.
+   - **Divider & Metrics Footer:** Horizontal divider leading into a 2-column Lucide metrics grid (`FileText` Records, `Scan` Scans, `TrendingUp` Vitals, `Mic` Clinical Notes) and stacked sheet `Get FHIR` trigger.
+   - **Event Propagation:** Clicking anywhere on the card opens the AI copilot sidebar; clicking metrics or the 3-dots menu stops propagation.
+4. **Admit Patient Modal Upgrades ([AddPatientModal.tsx](file:///F:/My%20Projects/ai-patient-platform/src/components/AddPatientModal.tsx)):**
+   - Integrated live avatar preview with file upload (<5MB) or direct URL input.
+5. **Edit Patient Modal ([EditPatientModal.tsx](file:///F:/My%20Projects/ai-patient-platform/src/components/EditPatientModal.tsx)):**
+   - Modal matching the Add Patient layout with non-editable `Medical ID (Locked)`, editable profile picture, name, age, status, and summary.
+   - In-modal document upload section with live list of attached PDFs and FastAPI ChromaDB / PostgreSQL indexing.
+6. **Confirmation Safeguard Modal ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx)):**
+   - High-visibility confirmation dialog before deleting patient data, with loading spinners and automatic patient roster refresh.

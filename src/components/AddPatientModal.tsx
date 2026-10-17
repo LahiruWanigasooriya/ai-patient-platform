@@ -15,10 +15,26 @@ export function AddPatientModal({ isOpen, onClose, onPatientCreated }: AddPatien
   const [age, setAge] = useState<number | "">("");
   const [status, setStatus] = useState<"Stable" | "Review" | "Critical">("Stable");
   const [summary, setSummary] = useState("");
+  const [image, setImage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size must be under 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +51,7 @@ export function AddPatientModal({ isOpen, onClose, onPatientCreated }: AddPatien
         age: Number(age),
         status,
         summary: summary.trim(),
+        image: image.trim() || null,
       });
       onPatientCreated();
       onClose();
@@ -43,6 +60,7 @@ export function AddPatientModal({ isOpen, onClose, onPatientCreated }: AddPatien
       setAge("");
       setStatus("Stable");
       setSummary("");
+      setImage("");
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Failed to create patient profile.");
@@ -83,6 +101,66 @@ export function AddPatientModal({ isOpen, onClose, onPatientCreated }: AddPatien
               {error}
             </div>
           )}
+
+          {/* Profile Picture Uploader & Preview */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+              Patient Profile Picture (If Available)
+            </label>
+            <div className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200/80 dark:border-gray-700">
+              {/* Avatar Preview */}
+              <div className="relative flex-shrink-0">
+                {image ? (
+                  <img
+                    src={image}
+                    alt="Patient preview"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-[#a8a8a8] flex items-center justify-center overflow-hidden border border-gray-300 dark:border-gray-600">
+                    <svg className="w-full h-full text-white translate-y-1.5 scale-90" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                {image && (
+                  <button
+                    type="button"
+                    onClick={() => setImage("")}
+                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-xs transition"
+                    title="Remove picture"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Upload Controls */}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <label className="cursor-pointer inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-2xs">
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-[11px] text-gray-400">JPG, PNG, WebP up to 5MB</span>
+                </div>
+                <input
+                  type="url"
+                  placeholder="Or paste image URL (https://...)"
+                  value={image.startsWith("data:") ? "" : image}
+                  onChange={(e) => setImage(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
