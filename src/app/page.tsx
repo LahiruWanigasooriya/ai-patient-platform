@@ -7,6 +7,7 @@ import { AddPatientModal } from "@/components/AddPatientModal";
 import { DocumentViewerModal } from "@/components/DocumentViewerModal";
 import { VitalsTrajectoryModal } from "@/components/VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
+import { AmbientScribeModal } from "@/components/AmbientScribeModal";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -23,7 +24,8 @@ import {
   ArrowTrendingUpIcon,
   ShieldExclamationIcon,
   EyeIcon,
-  PhotoIcon
+  PhotoIcon,
+  MicrophoneIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { getPatients } from "./actions/patients";
@@ -38,10 +40,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
 
-  // Epic 5 & 6 Modals
+  // Epic 5, 6 & 7 Modals
   const [viewingDoc, setViewingDoc] = useState<{ fileName: string; patientId: number; patientName: string } | null>(null);
   const [trajectoryPatient, setTrajectoryPatient] = useState<PatientWithDocs | null>(null);
   const [imageAnalysisPatient, setImageAnalysisPatient] = useState<PatientWithDocs | null>(null);
+  const [scribePatient, setScribePatient] = useState<PatientWithDocs | null>(null);
 
   const refreshPatients = () => {
     setLoading(true);
@@ -394,6 +397,21 @@ export default function Dashboard() {
                               </button>
                             </>
                           )}
+
+                          <span>•</span>
+
+                          {/* Ambient AI Scribe & Notes Trigger */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScribePatient(patient);
+                            }}
+                            className="flex items-center text-rose-600 dark:text-rose-400 hover:underline font-semibold cursor-pointer"
+                            title="Ambient AI Scribe & Clinical Voice Dictation"
+                          >
+                            <MicrophoneIcon className="w-3.5 h-3.5 mr-0.5" />
+                            <span>{patient.clinicalNotes?.length || 0} Notes</span>
+                          </button>
                         </div>
 
                         <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
@@ -824,6 +842,16 @@ export default function Dashboard() {
             setSelectedPatient(imageAnalysisPatient.id);
             setImageAnalysisPatient(null);
           }}
+        />
+      )}
+
+      {/* Ambient AI Scribe & Clinical Voice Dictation Modal */}
+      {scribePatient && (
+        <AmbientScribeModal
+          isOpen={!!scribePatient}
+          onClose={() => setScribePatient(null)}
+          patient={scribePatient}
+          onNoteSaved={refreshPatients}
         />
       )}
       

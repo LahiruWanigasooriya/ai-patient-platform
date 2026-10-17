@@ -23,6 +23,9 @@ export async function getPatients() {
           },
           images: {
             orderBy: { createdAt: 'desc' }
+          },
+          clinicalNotes: {
+            orderBy: { createdAt: 'desc' }
           }
         },
         orderBy: { updatedAt: 'desc' }
@@ -200,6 +203,67 @@ export async function updateImageAiImpression(imageId: string, aiImpression: str
   return await prisma.medicalImage.update({
     where: { id: imageId },
     data: { aiImpression },
+  });
+}
+
+export async function createClinicalNote(patientId: number, data: {
+  title: string;
+  noteType?: string;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+  rawTranscript?: string;
+  dictatedBy?: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const note = await prisma.clinicalNote.create({
+    data: {
+      patientId,
+      title: data.title,
+      noteType: data.noteType || "SOAP",
+      subjective: data.subjective,
+      objective: data.objective,
+      assessment: data.assessment,
+      plan: data.plan,
+      rawTranscript: data.rawTranscript,
+      dictatedBy: data.dictatedBy || (session.user.name || "Attending Physician"),
+    },
+  });
+
+  // Touch patient updatedAt
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { updatedAt: new Date() },
+  });
+
+  return note;
+}
+
+export async function getPatientClinicalNotes(patientId: number) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  return await prisma.clinicalNote.findMany({
+    where: { patientId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function deleteClinicalNote(noteId: string) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  return await prisma.clinicalNote.delete({
+    where: { id: noteId },
   });
 }
 

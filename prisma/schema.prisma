@@ -80,6 +80,7 @@ model Patient {
   documents   Document[]
   vitalReadings VitalReading[]
   images      MedicalImage[]
+  clinicalNotes ClinicalNote[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -125,6 +126,25 @@ model MedicalImage {
   modalityDetail String?   // e.g. "PA / Lateral Projection", "Standard 12-Lead"
   
   createdAt      DateTime  @default(now())
+
+  @@index([patientId, createdAt])
+}
+
+model ClinicalNote {
+  id             String   @id @default(cuid())
+  patientId      Int
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title          String
+  noteType       String   @default("SOAP")
+  subjective     String   @db.Text
+  objective      String   @db.Text
+  assessment     String   @db.Text
+  plan           String   @db.Text
+  rawTranscript  String?  @db.Text
+  dictatedBy     String?
+  signedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([patientId, createdAt])
 }

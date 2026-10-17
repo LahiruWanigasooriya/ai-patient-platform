@@ -197,6 +197,37 @@ To access your patients and test the AI features:
      > *"Can you analyze Jane Smith's lab panel or chest X-ray?"*
    - The vision engine inspects Jane's normal chest X-ray ($CTR = 0.44$) and confirms clear lung fields with normal cardiac silhouette, or evaluates her allergy panel with Class IV penicillin hypersensitivity!
 
+
+### Test L: Ambient AI Scribe & Clinical Voice Dictation (Epic 7)
+1. On **John Doe's** patient card on the dashboard roster:
+   - Notice the rose button: **`1 Notes`** (or in the AI chat drawer header: **`AI Scribe`**).
+   - Click directly on the **`1 Notes`** button.
+2. The **Ambient AI Scribe & Clinical Voice Dictation Studio Modal** opens:
+   - **Signed EHR Notes Tab:** Displays the formal signed SOAP consultation note seeded for John Doe: *"Cardiology & Hypertension Comprehensive Follow-Up"* with all 4 quadrants (Subjective, Objective, Assessment, Plan) and signature by Dr. Gregory House, MD.
+   - **Live Scribe Studio Tab:** Click the top toggle to switch to the Live Scribe Studio.
+   - **Audio Recording & Waveform:** Click **`Start Ambient Recording`** to see the 28-bar animated audio waveform visualizer and live timer `REC 00:03...`.
+   - **Scenario Quick-Pick:** Click on **`Cardiology Follow-Up: Severe Hypertension`** from the clinical scenarios list.
+     - The dialogue instantly streams into the raw transcript canvas.
+   - **AI SOAP Synthesis:** Click the purple **`Synthesize Structured SOAP Note`** button:
+     - The AI parses the dialogue into the 4 structured quadrants:
+       - **S (Subjective):** Occipital morning headaches, exertional chest tightness, Lisinopril compliance.
+       - **O (Objective):** Correlates live vitals (BP 174/104, HR 88), ECG LVH findings, and cardiomegaly on chest X-ray.
+       - **A (Assessment):** Uncontrolled Stage 2 Arterial Hypertension with LVH target-organ damage.
+       - **P (Plan):** Lisinopril continuation, Amlodipine 5mg addition, urgent echocardiogram, low-sodium diet.
+     - **Suggested Billing Codes:** Displays CPT `99214` (Moderate Complexity) and ICD-10 `I10` (Hypertension), `I51.7` (Cardiomegaly).
+   - **EHR Sign-Off:** Click **`Sign & Commit to Patient Chart`**:
+     - The note is cryptographically signed and committed to PostgreSQL.
+     - The modal shows a green confirmation badge and transitions to the Historical Notes tab displaying the newly committed note (now 2 signed notes!).
+   - Close the modal (`×`).
+3. Now test **Autonomous AI Copilot SOAP Synthesis in Chat**:
+   - Open John Doe's AI Assistant chat drawer.
+   - Type in chat:
+     > *"Please synthesize a formal SOAP consultation note for John Doe based on his severe hypertension and morning headaches."*
+   - The AI Copilot autonomously executes the `synthesizeSoapNote` tool and streams the **Ambient Scribe AI SOAP Note Generative UI Card**:
+     - Displays the structured 4-quadrant layout with encounter tags and suggested CPT/ICD-10 codes.
+     - Click **`Sign & Commit Note to Chart`** directly on the chat card!
+     - The button immediately updates to a verified green badge: **`✓ Signed & Committed to EHR Chart`**!
+
 ---
 
 ## 3. How to Start Services Manually (If Ever Stopped)

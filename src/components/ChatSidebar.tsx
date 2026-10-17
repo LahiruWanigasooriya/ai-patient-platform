@@ -19,20 +19,24 @@ import {
   CheckCircleIcon,
   EyeIcon,
   SparklesIcon,
-  PhotoIcon
+  PhotoIcon,
+  MicrophoneIcon,
+  CheckBadgeIcon
 } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Patient, Document as PatientDocument, VitalReading, MedicalImage } from "@prisma/client";
-import { addPatientDocument } from "@/app/actions/patients";
+import { Patient, Document as PatientDocument, VitalReading, MedicalImage, ClinicalNote } from "@prisma/client";
+import { addPatientDocument, createClinicalNote } from "@/app/actions/patients";
 import { DocumentViewerModal } from "./DocumentViewerModal";
 import { VitalsTrajectoryModal } from "./VitalsTrajectoryModal";
 import { ImageAnalysisModal } from "./ImageAnalysisModal";
+import { AmbientScribeModal } from "./AmbientScribeModal";
 
 export type PatientWithDocs = Patient & {
   documents?: PatientDocument[];
   vitalReadings?: VitalReading[];
   images?: MedicalImage[];
+  clinicalNotes?: ClinicalNote[];
 };
 
 interface ChatSidebarProps {
@@ -67,6 +71,8 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
   const [isTrajectoryOpen, setIsTrajectoryOpen] = useState(false);
   const [isImageAnalysisOpen, setIsImageAnalysisOpen] = useState(false);
+  const [isScribeOpen, setIsScribeOpen] = useState(false);
+  const [signedSoapNotes, setSignedSoapNotes] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -169,6 +175,14 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                 <ArrowTrendingUpIcon className="w-3 h-3" />
                 <span>Vitals Trajectory</span>
               </button>
+              <span>•</span>
+              <button
+                onClick={() => setIsScribeOpen(true)}
+                className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center space-x-0.5 cursor-pointer"
+              >
+                <MicrophoneIcon className="w-3 h-3" />
+                <span>AI Scribe</span>
+              </button>
             </div>
           )}
         </div>
@@ -227,6 +241,21 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
               <PhotoIcon className="w-3 h-3 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
               <span className="font-semibold">{patient.images.length} Diagnostic Scans</span>
               <EyeIcon className="w-2.5 h-2.5 text-cyan-500 ml-0.5" />
+            </button>
+          )}
+          {patient && (
+            <button
+              onClick={() => setIsScribeOpen(true)}
+              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs hover:border-rose-400 transition cursor-pointer group"
+              title="Ambient AI Scribe & Clinical Voice Dictation"
+            >
+              <MicrophoneIcon className="w-3 h-3 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+              <span className="font-semibold">Ambient Scribe</span>
+              {patient.clinicalNotes && patient.clinicalNotes.length > 0 && (
+                <span className="ml-0.5 px-1 bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-200 rounded-full text-[9px] font-bold">
+                  {patient.clinicalNotes.length}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -657,7 +686,121 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
 
-                    // 7. Search Documents Citation
+                    // 7. Ambient AI Scribe & Clinical SOAP Note Generative UI Card
+                    if (toolName === "synthesizeSoapNote") {
+                      const soap = output || {};
+                      const noteKey = `${soap.patientId || patientId}-${index}`;
+                      const isSigned = signedSoapNotes[noteKey];
+
+                      return (
+                        <div key={index} className="my-3 p-4 rounded-xl bg-gradient-to-br from-gray-900 to-gray-950 border border-rose-500/30 text-gray-100 shadow-xl shadow-rose-950/20 text-xs">
+                          {/* Header */}
+                          <div className="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-lg bg-rose-950/80 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                                <MicrophoneIcon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white text-xs tracking-tight">
+                                  {soap.noteTitle || "Clinical SOAP Consultation Note"}
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {soap.encounterType} • {soap.synthesizedAt || "Live Synthesized"}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                              Ambient Scribe AI
+                            </span>
+                          </div>
+
+                          {/* 4 Quadrants */}
+                          <div className="space-y-2.5 mb-3">
+                            <div className="p-2.5 rounded-lg bg-blue-950/30 border border-blue-900/40 text-[11px]">
+                              <span className="font-bold text-blue-300 block mb-0.5">S • Subjective:</span>
+                              <p className="text-gray-300 leading-relaxed whitespace-pre-line">{soap.subjective}</p>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-900/40 text-[11px]">
+                              <span className="font-bold text-emerald-300 block mb-0.5">O • Objective:</span>
+                              <p className="text-gray-300 leading-relaxed whitespace-pre-line">{soap.objective}</p>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-900/40 text-[11px]">
+                              <span className="font-bold text-amber-300 block mb-0.5">A • Assessment:</span>
+                              <p className="text-gray-300 leading-relaxed whitespace-pre-line">{soap.assessment}</p>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-purple-950/30 border border-purple-900/40 text-[11px]">
+                              <span className="font-bold text-purple-300 block mb-0.5">P • Plan:</span>
+                              <p className="text-gray-300 leading-relaxed whitespace-pre-line">{soap.plan}</p>
+                            </div>
+                          </div>
+
+                          {/* Suggested Billing Codes */}
+                          {soap.cptCodes && soap.cptCodes.length > 0 && (
+                            <div className="mb-3 p-2 bg-gray-900/80 rounded-lg border border-gray-800">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                Suggested Billing (CPT / ICD-10):
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {soap.cptCodes.map((c: any, ci: number) => (
+                                  <span key={ci} className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/60 text-indigo-300 border border-indigo-900/60">
+                                    <strong>{c.code}</strong>: {c.desc}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-gray-800">
+                            {isSigned ? (
+                              <div className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-900/60 border border-emerald-500/50 text-emerald-300 font-semibold text-xs flex items-center justify-center space-x-1.5">
+                                <CheckBadgeIcon className="w-4 h-4 text-emerald-400" />
+                                <span>Signed & Committed to EHR Chart</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  if (!patientId) return;
+                                  try {
+                                    await createClinicalNote(patientId, {
+                                      title: soap.noteTitle || "Consultation SOAP Note",
+                                      noteType: "SOAP",
+                                      subjective: soap.subjective || "",
+                                      objective: soap.objective || "",
+                                      assessment: soap.assessment || "",
+                                      plan: soap.plan || "",
+                                      rawTranscript: soap.rawTranscript || "",
+                                      dictatedBy: "Dr. Gregory House, MD",
+                                    });
+                                    setSignedSoapNotes(prev => ({ ...prev, [noteKey]: true }));
+                                    if (onDocumentUploaded) onDocumentUploaded();
+                                  } catch (err) {
+                                    console.error("Failed to commit note:", err);
+                                  }
+                                }}
+                                className="flex-1 py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-rose-950/40"
+                              >
+                                <CheckBadgeIcon className="w-4 h-4" />
+                                <span>Sign & Commit Note to Chart</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setIsScribeOpen(true)}
+                              className="py-1.5 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Open Ambient Scribe Studio"
+                            >
+                              <MicrophoneIcon className="w-3.5 h-3.5 text-rose-400" />
+                              <span>Open Scribe</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // 8. Search Documents Citation
                     if (toolName === "searchDocuments") {
                       return (
                         <div 
@@ -772,6 +915,16 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
           }}
         />
       )}
+
+      {/* Ambient AI Scribe & Clinical Voice Dictation Modal */}
+      <AmbientScribeModal
+        isOpen={isScribeOpen}
+        onClose={() => setIsScribeOpen(false)}
+        patient={patient || null}
+        onNoteSaved={() => {
+          if (onDocumentUploaded) onDocumentUploaded();
+        }}
+      />
 
     </div>
   );

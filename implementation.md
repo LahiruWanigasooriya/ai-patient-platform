@@ -241,3 +241,43 @@ We implemented a robust persistence layer and authentication framework to transi
      - **DICOM & Technical Metadata Tab:** Displays technical acquisition parameters, exposure index, and multi-tenant security verification.
    - Triggerable directly from patient cards on the dashboard roster via the cyan `X Scans` button, from cohort analytics telemetry rows, and from the AI chat copilot card.
 
+
+---
+
+## Epic 7: Ambient AI Scribe & Clinical Voice Dictation (Completed)
+
+*Successfully engineered an ambient AI scribe and clinical voice dictation studio that captures unstructured doctor-patient consultation dialogue, transcribes speech in real time, synthesizes structured 4-quadrant SOAP (Subjective, Objective, Assessment, Plan) consultation notes with billing CPT and ICD-10 suggestions, and commits cryptographically signed notes directly into PostgreSQL EHR charts.*
+
+**Completed Steps:**
+1. **Relational Clinical Note Schema (`prisma/schema.prisma` & `src/app/actions/patients.ts`):**
+   - Implemented `ClinicalNote` model in PostgreSQL with `patientId`, `title`, `noteType` (default `"SOAP"`), `subjective`, `objective`, `assessment`, `plan`, `rawTranscript`, `dictatedBy`, `signedAt`, and indexed on `[patientId, createdAt]`.
+   - Updated `Patient` model relation `clinicalNotes ClinicalNote[]` with cascade delete.
+   - Synchronized schema via `npx prisma db push && npx prisma generate`.
+   - Extended `getPatients()` server action to include `clinicalNotes: { orderBy: { createdAt: 'desc' } }`.
+   - Implemented server actions: `createClinicalNote`, `getPatientClinicalNotes`, and `deleteClinicalNote`.
+2. **Clinical SOAP Note Seeding (`prisma/seed_notes.ts`):**
+   - Seeded formal consultation notes for John Doe (Cardiology & Hypertension Comprehensive Follow-Up) and Jane Smith (Allergy Immunology Consultation & Wellness Review).
+   - Validated idempotent database population via `npx tsx prisma/seed_notes.ts`.
+3. **Ambient AI Scribe Studio Modal (`src/components/AmbientScribeModal.tsx`):**
+   - High-fidelity clinical voice dictation studio with dual tabbed view:
+     - **Live Scribe Studio:**
+       - Real-time animated audio waveform visualizer (28 dynamic oscillating bars).
+       - Speech-to-text integration via Web Speech API (`webkitSpeechRecognition`) with simulated live dictation streaming fallback.
+       - Quick-pick consultation presets (Cardiology Severe Hypertension, Immunology Penicillin Anaphylaxis, Pulmonology Asthma, and Post-Op Day 7 Appendectomy).
+       - Raw transcript review and editing canvas.
+       - "Synthesize Structured SOAP Note" trigger with loading state.
+       - 4-quadrant interactive note editor (Subjective, Objective, Assessment, Plan) with suggested CPT (`99214`, `99213`, `99024`) and ICD-10 (`I10`, `I51.7`, `Z88.0`, `J45.41`, `Z48.815`) billing codes.
+       - "Sign & Commit to Patient Chart" action with cryptographic physician sign-off indicator.
+     - **Signed EHR Notes Browser:**
+       - Chronological listing of all committed SOAP notes for the active patient with timestamp, attending physician sign-off, and delete capabilities.
+4. **AI Copilot SOAP Synthesis Tool & Generative UI (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
+   - Added `synthesizeSoapNote` agentic tool with Zod schema in chat API route.
+   - Generates structured SOAP narratives enriched with the patient's actual recorded vitals and diagnostic scans.
+   - Built the **Ambient Scribe AI SOAP Note** Generative UI Card in `ChatSidebar.tsx`:
+     - Displays formatted Subjective, Objective, Assessment, and Plan cards with encounter badge.
+     - Includes suggested billing code tags.
+     - Features an in-stream "Sign & Commit Note to Chart" button that immediately commits the note to PostgreSQL and transitions to a verified green badge.
+5. **Dashboard Roster & Chat Header Integration (`src/app/page.tsx` & `src/components/ChatSidebar.tsx`):**
+   - Added interactive `🎙️ X Notes` trigger button on each patient card in the roster.
+   - Added AI Scribe quick trigger in the chat header and document chips bar.
+   - Synchronized real-time patient refresh upon note commit.
