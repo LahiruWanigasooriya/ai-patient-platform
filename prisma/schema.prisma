@@ -17,6 +17,13 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  title         String?   @default("Attending Physician, MD")
+  specialty     String?   @default("Internal Medicine & Cardiology")
+  department    String?   @default("Department of Clinical Medicine")
+  hospital      String?   @default("MedIntel Health Network")
+  phone         String?   @default("+1 (555) 839-2001")
+  licenseNumber String?   @default("LIC-MED-99420")
+  bio           String?   @default("Board-certified physician leveraging AI clinical intelligence for diagnostic precision and multi-tenant patient care.")
   accounts      Account[]
   sessions      Session[]
   

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LoginPage() {
@@ -46,9 +47,15 @@ export default function LoginPage() {
       {/* Dark overlay for the background */}
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm z-0"></div>
 
-      {/* Top Navbar Logo (Optional, like Pixabay) */}
-      <div className="absolute top-6 left-8 z-20 flex items-center space-x-2">
-        <h1 className="text-3xl font-black text-white tracking-tighter">MedIntel</h1>
+      {/* Top Navbar Logo */}
+      <div className="absolute top-6 left-8 z-20 flex items-center">
+        <Link href="/" className="inline-block transition-transform duration-200 hover:scale-105">
+          <img
+            src="/logo.png"
+            alt="MedIntel AI Platform"
+            className="h-11 w-auto object-contain bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-lg border border-white/20"
+          />
+        </Link>
       </div>
 
       {/* Top Navbar Theme Toggle */}

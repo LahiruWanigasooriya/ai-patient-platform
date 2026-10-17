@@ -350,3 +350,60 @@ We implemented a robust persistence layer and authentication framework to transi
    - High-fidelity sliding pill switch with animated amber Sun and indigo Moon icons.
    - Hover and active spring micro-animations with dual-mode ambient glows.
    - Mounted prominently in the navigation header on both Desktop and Mobile viewports, as well as on the authentication screen (`src/app/login/page.tsx`).
+
+---
+
+## UI/UX Enhancement: Clinician Profile Settings & Integrated Logout Modal
+
+*Engineered an interactive, persistent Clinician Profile & Settings modal accessible by clicking the user name/avatar in the navigation bar, featuring multi-tab profile management, credential editing, curated avatar selection, and integrated session sign-out.*
+
+**Components & Architecture:**
+1. **Relational User Schema Extension (`prisma/schema.prisma`):**
+   - Augmented `User` model with clinical profile fields: `title`, `specialty`, `department`, `hospital`, `phone`, `licenseNumber`, and `bio`.
+   - Synchronized schema to PostgreSQL via `npx prisma db push && npx prisma generate`.
+2. **Server Actions for Profile Management (`src/app/actions/user.ts`):**
+   - `getUserProfile()`: Retrieves authenticated clinician profile, credentials, and assigned patient counts.
+   - `updateUserProfile(data)`: Validates and updates clinician fields in PostgreSQL with HIPAA audit logging (`action: VIEW_RECORD`, `resourceType: User`).
+3. **Clinician Profile Modal Component (`src/components/UserProfileModal.tsx`):**
+   - **Hero Clinician Identity Header:** Displays verified clinician badge, avatar with camera quick-link, active assigned patients count, and hospital network pill.
+   - **Multi-Tab Architecture:**
+     - *General Profile:* Edit full name, contact/pager number, state medical license #, and practice bio.
+     - *Clinical Credentials:* Professional title/rank, primary clinical specialty, hospital department/unit, facility affiliation, and active HIPAA security clearance status.
+     - *Avatar Presets:* Direct custom URL input alongside 4 curated clinical portrait presets (Diagnostic, Cardiology, Surgery, Lab).
+   - **Integrated Sign-Out:** Replaced the external navbar logout icon with an integrated `Sign Out of MedIntel` action in the modal footer.
+4. **Navbar Trigger Integration (`src/app/page.tsx`):**
+   - Converted user avatar and name into an interactive button with live online status indicator, hover states, and dynamic profile overrides.
+   - Removed the standalone logout icon from the top navbar.
+
+---
+
+## UI/UX Enhancement: Platform Settings Modal & Navbar Icon Button
+
+*Replaced the navbar theme toggle button with a unified Settings icon button that triggers a simple, non-complex Platform Settings modal housing the light/dark theme switcher, audio alerts, terminology highlights, and HIPAA inactivity timeout.*
+
+**Components & Architecture:**
+1. **Navbar Settings Trigger ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx)):**
+   - Replaced the standalone navbar theme toggle with a sleek `Cog6ToothIcon` settings button featuring smooth hover rotation (`group-hover:rotate-45`).
+   - Located between the Admit Patient action and the Clinician Profile trigger.
+2. **Platform Settings Modal ([SettingsModal.tsx](file:///F:/My%20Projects/ai-patient-platform/src/components/SettingsModal.tsx)):**
+   - **Interface Appearance & Theme:** Prominent visual Light Mode (Amber Sun) vs Dark Mode (Indigo Moon) cards plus the embedded interactive theme toggle pill.
+   - **Alerts & Acoustic Chimes:** Simple switches to toggle Critical Vitals audio tones and Ambient Scribe background synthesis completion alerts.
+   - **Clinical Display Preferences:** Toggle smart medical nomenclature highlighting (LOINC, ICD-10, and CPT terms in chat).
+   - **HIPAA Inactivity Session Timeout:** Workstation timeout selector (15 mins, 30 mins, 60 mins, or disabled).
+   - **Local Storage Persistence:** All preferences are saved immediately to `localStorage` (`medintel-app-settings`) with quick feedback toasts.
+   - **Reset to Defaults:** One-click option to restore original platform defaults.
+
+---
+
+## UI/UX Enhancement: Brand Identity & MedIntel Logo Integration
+
+*Upgraded the platform's visual identity across the dashboard and authentication interfaces by integrating the official high-resolution `public/logo.png` asset.*
+
+**Components & Architecture:**
+1. **Dashboard Navigation Bar ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx)):**
+   - Replaced the previous generic icon box and text lockup with `<img src="/logo.png" alt="MedIntel AI Platform" ... />`.
+   - Scaled with responsive height (`h-11 sm:h-12 w-auto object-contain`) and hover micro-interaction (`group-hover:scale-105 transition-transform`).
+   - Retained click behavior to reset patient selection and switch to the Patient roster view.
+2. **Authentication Screen Navigation ([login/page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/login/page.tsx)):**
+   - Replaced plain text heading with the official branded logo wrapped in a translucent frosted backdrop (`bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-lg border border-white/20`) for optimal contrast against the photographic background.
+   - Linked directly to the root route (`/`) with smooth scaling on hover.

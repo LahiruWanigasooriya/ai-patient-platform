@@ -10,7 +10,8 @@ import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
 import { AmbientScribeModal } from "@/components/AmbientScribeModal";
 import { AuditTrailModal } from "@/components/AuditTrailModal";
 import { FhirExportModal } from "@/components/FhirExportModal";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserProfileModal } from "@/components/UserProfileModal";
+import { SettingsModal } from "@/components/SettingsModal";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -29,7 +30,8 @@ import {
   EyeIcon,
   PhotoIcon,
   MicrophoneIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
+  Cog6ToothIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { getPatients } from "./actions/patients";
@@ -51,6 +53,12 @@ export default function Dashboard() {
   const [scribePatient, setScribePatient] = useState<PatientWithDocs | null>(null);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [fhirExportPatient, setFhirExportPatient] = useState<PatientWithDocs | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [profileOverride, setProfileOverride] = useState<{ name: string | null; image: string | null } | null>(null);
+
+  const currentUserName = profileOverride?.name ?? session?.user?.name ?? "Dr. Gregory House";
+  const currentUserImage = profileOverride?.image ?? session?.user?.image ?? null;
 
   const refreshPatients = () => {
     setLoading(true);
@@ -110,20 +118,14 @@ export default function Dashboard() {
         {/* Top Navigation */}
         <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-8 z-20">
           <div 
-            className="flex items-center space-x-2.5 cursor-pointer" 
+            className="flex items-center cursor-pointer group py-1" 
             onClick={() => { setSelectedPatient(null); setActiveTab("patients"); }}
           >
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-xs">
-              <UserCircleIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">
-                MedIntel
-              </h1>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600 dark:text-emerald-400">
-                Clinical AI Platform
-              </span>
-            </div>
+            <img
+              src="/logo.png"
+              alt="MedIntel AI Platform"
+              className="h-11 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            />
           </div>
 
           <div className="flex items-center space-x-4">
@@ -169,38 +171,49 @@ export default function Dashboard() {
               </button>
             </nav>
 
-            {/* Dark / Light Mode Changer Toggle */}
+            {/* Platform Settings Button (opens Settings Modal with Theme Switcher) */}
             <div className="flex items-center pl-1 md:pl-2">
-              <ThemeToggle />
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="p-2 rounded-xl text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700 group shadow-2xs"
+                title="Platform Settings & Theme Preferences"
+                aria-label="Settings"
+              >
+                <Cog6ToothIcon className="w-5 h-5 group-hover:rotate-45 transition-transform duration-300" />
+              </button>
             </div>
             
             {session ? (
-              <div className="flex items-center space-x-4 pl-4 border-l border-gray-200 dark:border-gray-800">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border border-gray-300 dark:border-gray-600">
-                    {session.user?.image ? (
-                      <img src={session.user.image} alt="User avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                        {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || 'D'}
-                      </span>
-                    )}
+              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="flex items-center space-x-2.5 p-1.5 -m-1.5 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800/80 transition cursor-pointer group text-left border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  title="Open Clinician Profile Settings"
+                >
+                  <div className="relative">
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border border-gray-300 dark:border-gray-600 group-hover:ring-2 group-hover:ring-emerald-500 transition">
+                      {currentUserImage ? (
+                        <img src={currentUserImage} alt="User avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                          {currentUserName?.charAt(0) || session.user?.email?.charAt(0) || 'D'}
+                        </span>
+                      )}
+                    </div>
+                    {/* Status Dot */}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
                   </div>
+
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-tight">
-                      {session.user?.name || "Dr. Staff"}
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {currentUserName || "Dr. Staff"}
                     </span>
                     <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
                       {session.user?.email}
                     </span>
                   </div>
-                </div>
-                <button 
-                  onClick={() => signOut()}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"
-                  title="Sign Out"
-                >
-                  <ArrowRightOnRectangleIcon className="w-4 h-4" />
                 </button>
               </div>
             ) : (
@@ -914,6 +927,19 @@ export default function Dashboard() {
           onExportSuccess={refreshPatients}
         />
       )}
+
+      {/* Clinician Profile Settings Modal */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onProfileUpdated={(updated) => setProfileOverride(updated)}
+      />
+
+      {/* Platform Settings & Preferences Modal */}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
       
     </div>
   );
