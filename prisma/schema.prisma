@@ -79,6 +79,7 @@ model Patient {
   
   documents   Document[]
   vitalReadings VitalReading[]
+  images      MedicalImage[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -107,4 +108,23 @@ model VitalReading {
   recordedAt  DateTime @default(now())
 
   @@index([patientId, recordedAt])
+}
+
+model MedicalImage {
+  id             String    @id @default(cuid())
+  
+  patientId      Int
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  fileName       String
+  title          String
+  imageUrl       String    @db.Text
+  imageType      String    // "X-Ray", "ECG", "CT Scan", "Lab Report", "Ultrasound"
+  clinicalNotes  String?   @db.Text
+  aiImpression   String?   @db.Text
+  modalityDetail String?   // e.g. "PA / Lateral Projection", "Standard 12-Lead"
+  
+  createdAt      DateTime  @default(now())
+
+  @@index([patientId, createdAt])
 }

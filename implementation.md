@@ -23,6 +23,7 @@ The development of the platform is broken down into four distinct, sequential Ep
 - **Epic 3: Multi-Tenant RAG & AI Upgrades (Completed):** Linking the PostgreSQL database to the ChromaDB vector embeddings securely. Creating upload mechanisms for PDFs that automatically associate them with specific patients, ensuring the LLM's RAG context is perfectly filtered by patient ID.
 - **Epic 4: Advanced Generative UI, Analytics & Clinical Reporting (Completed):** Introducing interactive Generative UI clinical widgets, a population-level cohort analytics dashboard, dynamic patient admission workflows, and high-throughput agentic tool calling.
 - **Epic 5: Clinical Document Viewer, Pharmacological Safety Engine & Longitudinal Vitals Trending (Completed):** Adding in-app PDF & semantic chunk citation inspection, an agentic drug-drug interaction & allergy contraindication engine, and PostgreSQL-persisted longitudinal vitals curves.
+- **Epic 6: Multi-Modal Medical Vision & Diagnostic Imaging (Completed):** Integrating computer-aided diagnostic imaging, high-resolution radiology inspection with inverted contrast filters, and multi-modal clinical reasoning for Chest X-Rays, 12-lead ECGs, and lab panels.
 
 ---
 ## Epic 0: Project Scaffolding & Porting (Completed)
@@ -205,4 +206,38 @@ We implemented a robust persistence layer and authentication framework to transi
      - Visual AHA threshold lines (140 mmHg crisis line, 120 mmHg target line) with shaded pressure area.
      - Telemetry summary cards showing latest vitals, delta trend, and automated clinical surveillance guidance.
      - Accessible from patient roster cards and the AI Chat sidebar.
+
+---
+
+## Epic 6: Multi-Modal Medical Vision & Diagnostic Imaging (Completed)
+
+*Successfully integrated multi-modal computer-aided diagnostic imaging, high-resolution radiology inspection, and structured clinical vision reasoning across Chest Radiographs, Electrocardiograms, and Laboratory panels.*
+
+**Completed Steps:**
+1. **Relational Medical Image Architecture (`prisma/schema.prisma` & `src/app/actions/patients.ts`):**
+   - Implemented `MedicalImage` model in PostgreSQL with `patientId`, `fileName`, `title`, `imageUrl`, `imageType` (`X-Ray`, `ECG`, `CT Scan`, `Lab Report`), `clinicalNotes`, `aiImpression`, and `modalityDetail`.
+   - Updated `getPatients()` to include `images: { orderBy: { createdAt: 'desc' } }`.
+   - Added Server Actions `addPatientMedicalImage`, `getPatientMedicalImages`, and `updateImageAiImpression`.
+2. **Clinical Diagnostic Image Generation & Seeding (`prisma/generate_scans.js` & `prisma/seed_images.ts`):**
+   - Generated 4 high-fidelity, resolution-independent clinical diagnostic SVG assets in `public/medical_scans/`:
+     - `john_doe_chest_xray.svg`: PA Chest Radiograph with cardiothoracic ratio (CTR) ~0.61, left ventricular enlargement, and vascular cephalization.
+     - `john_doe_ecg_strip.svg`: Diagnostic 12-lead ECG tracing meeting Sokolow-Lyon voltage criteria for LVH ($S_{V1} + R_{V5} = 48\text{ mm} > 35\text{ mm}$) with lateral repolarization strain pattern.
+     - `jane_smith_chest_xray.svg`: Normal screening chest radiograph with sharp costophrenic angles and normal CTR ($0.44$).
+     - `jane_smith_lab_panel.svg`: Accredited clinical laboratory panel documenting high-titer specific IgE against major penicillin determinants (Class IV).
+   - Seeded records into PostgreSQL strictly partitioned by `patientId`.
+3. **Multi-Modal Vision Copilot Tool (`src/app/api/chat/route.ts`):**
+   - Enriched dynamic system prompt to inject active diagnostic scans into patient context.
+   - Added `analyzeMedicalScan` agentic tool with Zod schema validation.
+   - Computes structured clinical vision outputs: `scanTitle`, `modality`, `qualityAssessment`, categorized `findings` with severity levels, `differentialDiagnosis`, `radiologicalImpression`, and actionable next steps.
+4. **Radiology & Medical Vision Generative UI Card (`src/components/ChatSidebar.tsx`):**
+   - Intercepts `analyzeMedicalScan` tool outputs and dynamically renders a high-tech diagnostic card.
+   - Displays modality tags, interactive scan thumbnail, severity badges (`Critical`, `Severe`, `Moderate`, `Normal`), anatomical findings table, and direct "Open in High-Resolution Vision Inspector" button.
+5. **High-Resolution Medical Vision Inspector Modal (`src/components/ImageAnalysisModal.tsx` & `src/app/page.tsx`):**
+   - Integrated full diagnostic modal featuring viewport controls:
+     - **Invert Film Toggle:** Inverts negative/positive radiograph film tones for bone vs soft-tissue contrast reading.
+     - **Zoom & Pan Controls:** Zoom scale from 60% to 250% with real-time percentage readouts.
+     - **Brightness & Contrast Sliders:** Granular dynamic image enhancement.
+     - **Multi-Scan Gallery Tab:** Allows rapid switching between all diagnostic scans registered to the active patient.
+     - **DICOM & Technical Metadata Tab:** Displays technical acquisition parameters, exposure index, and multi-tenant security verification.
+   - Triggerable directly from patient cards on the dashboard roster via the cyan `X Scans` button, from cohort analytics telemetry rows, and from the AI chat copilot card.
 

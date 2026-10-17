@@ -20,6 +20,9 @@ export async function getPatients() {
           },
           vitalReadings: {
             orderBy: { recordedAt: 'asc' }
+          },
+          images: {
+            orderBy: { createdAt: 'desc' }
           }
         },
         orderBy: { updatedAt: 'desc' }
@@ -137,6 +140,66 @@ export async function getPatientVitals(patientId: number) {
   return await prisma.vitalReading.findMany({
     where: { patientId },
     orderBy: { recordedAt: 'asc' },
+  });
+}
+
+export async function addPatientMedicalImage(patientId: number, data: {
+  fileName: string;
+  title: string;
+  imageUrl: string;
+  imageType: string;
+  clinicalNotes?: string;
+  modalityDetail?: string;
+  aiImpression?: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const image = await prisma.medicalImage.create({
+    data: {
+      patientId,
+      fileName: data.fileName,
+      title: data.title,
+      imageUrl: data.imageUrl,
+      imageType: data.imageType,
+      clinicalNotes: data.clinicalNotes,
+      modalityDetail: data.modalityDetail,
+      aiImpression: data.aiImpression,
+    },
+  });
+
+  // Touch patient updatedAt
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { updatedAt: new Date() },
+  });
+
+  return image;
+}
+
+export async function getPatientMedicalImages(patientId: number) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  return await prisma.medicalImage.findMany({
+    where: { patientId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function updateImageAiImpression(imageId: string, aiImpression: string) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  return await prisma.medicalImage.update({
+    where: { id: imageId },
+    data: { aiImpression },
   });
 }
 

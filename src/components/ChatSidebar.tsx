@@ -18,18 +18,21 @@ import {
   ArrowTrendingUpIcon,
   CheckCircleIcon,
   EyeIcon,
-  SparklesIcon
+  SparklesIcon,
+  PhotoIcon
 } from "@heroicons/react/24/outline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Patient, Document as PatientDocument, VitalReading } from "@prisma/client";
+import { Patient, Document as PatientDocument, VitalReading, MedicalImage } from "@prisma/client";
 import { addPatientDocument } from "@/app/actions/patients";
 import { DocumentViewerModal } from "./DocumentViewerModal";
 import { VitalsTrajectoryModal } from "./VitalsTrajectoryModal";
+import { ImageAnalysisModal } from "./ImageAnalysisModal";
 
 export type PatientWithDocs = Patient & {
   documents?: PatientDocument[];
   vitalReadings?: VitalReading[];
+  images?: MedicalImage[];
 };
 
 interface ChatSidebarProps {
@@ -63,6 +66,7 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
   const [documents, setDocuments] = useState<string[]>(patient?.documents?.map(d => d.fileName) || []);
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
   const [isTrajectoryOpen, setIsTrajectoryOpen] = useState(false);
+  const [isImageAnalysisOpen, setIsImageAnalysisOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -214,6 +218,17 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
               <EyeIcon className="w-2.5 h-2.5 text-gray-400 group-hover:text-emerald-500 ml-0.5" />
             </button>
           ))}
+          {patient?.images && patient.images.length > 0 && (
+            <button
+              onClick={() => setIsImageAnalysisOpen(true)}
+              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shadow-2xs hover:border-cyan-400 transition cursor-pointer group"
+              title="Click to inspect patient diagnostic radiographs & scans"
+            >
+              <PhotoIcon className="w-3 h-3 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
+              <span className="font-semibold">{patient.images.length} Diagnostic Scans</span>
+              <EyeIcon className="w-2.5 h-2.5 text-cyan-500 ml-0.5" />
+            </button>
+          )}
         </div>
       )}
 
@@ -537,7 +552,112 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
                       );
                     }
 
-                    // 6. Search Documents Citation
+                    // 6. Medical Vision & Radiology Scan Analysis
+                    if (toolName === "analyzeMedicalScan") {
+                      const scan = output || {};
+                      return (
+                        <div key={index} className="my-3 p-4 rounded-xl bg-gray-950 border border-cyan-500/30 text-gray-100 shadow-lg shadow-cyan-950/20 text-xs">
+                          {/* Card Header */}
+                          <div className="flex items-center justify-between border-b border-gray-800 pb-2.5 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-7 h-7 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                                <PhotoIcon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white text-xs tracking-tight">
+                                  {scan.scanTitle || "Medical Diagnostic Vision Review"}
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {scan.modality || scan.scanType} • {scan.analyzedAt}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                              AI Vision Analyzed
+                            </span>
+                          </div>
+
+                          {/* Thumbnail & Key Metrics Row */}
+                          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gray-900 border border-gray-800 mb-3">
+                            {scan.imageUrl && (
+                              <div 
+                                onClick={() => setIsImageAnalysisOpen(true)}
+                                className="w-16 h-16 rounded-md bg-black border border-gray-700 overflow-hidden flex-shrink-0 cursor-pointer relative group"
+                                title="Click to expand scan in high-resolution inspector"
+                              >
+                                <img src={scan.imageUrl} alt={scan.scanTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <EyeIcon className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Differential Diagnosis</span>
+                              <div className="flex flex-wrap gap-1">
+                                {scan.differentialDiagnosis?.map((d: string, i: number) => (
+                                  <span key={i} className="px-1.5 py-0.5 rounded text-[10px] bg-gray-800 text-gray-200 border border-gray-700 font-sans">
+                                    {d}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Findings List */}
+                          <div className="space-y-1.5 mb-3">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Observed Findings</span>
+                            {scan.findings?.map((f: any, i: number) => (
+                              <div key={i} className="flex items-start justify-between gap-2 p-2 rounded-md bg-gray-900/60 border border-gray-800/80">
+                                <div>
+                                  <span className="font-semibold text-gray-200 block text-[11px]">{f.anatomicalRegion}</span>
+                                  <span className="text-gray-400 text-[11px]">{f.finding}</span>
+                                </div>
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0 ${
+                                  f.severity === 'critical' ? 'bg-red-500/20 text-red-300 border border-red-500/40' :
+                                  f.severity === 'severe' ? 'bg-red-500/15 text-red-300 border border-red-500/30' :
+                                  f.severity === 'moderate' ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' :
+                                  f.severity === 'mild' ? 'bg-yellow-500/15 text-yellow-300 border border-yellow-500/30' :
+                                  'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                }`}>
+                                  {f.severity}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Radiologist AI Impression Box */}
+                          {scan.radiologicalImpression && (
+                            <div className="p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-500/30 mb-3">
+                              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">Radiological Impression:</span>
+                              <p className="text-cyan-100 text-xs font-sans leading-relaxed">{scan.radiologicalImpression}</p>
+                            </div>
+                          )}
+
+                          {/* Actionable Recommendations */}
+                          {scan.recommendations && scan.recommendations.length > 0 && (
+                            <div className="mb-3">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Clinical Follow-up & Next Steps</span>
+                              <ul className="list-disc list-inside text-[11px] text-gray-300 space-y-0.5">
+                                {scan.recommendations.map((r: string, i: number) => (
+                                  <li key={i}>{r}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Footer Button */}
+                          <button
+                            onClick={() => setIsImageAnalysisOpen(true)}
+                            className="w-full py-1.5 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <EyeIcon className="w-3.5 h-3.5" />
+                            Open in High-Resolution Vision Inspector
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    // 7. Search Documents Citation
                     if (toolName === "searchDocuments") {
                       return (
                         <div 
@@ -637,6 +757,21 @@ export function ChatSidebar({ patientId, patient, onClose, onDocumentUploaded }:
         status={patient?.status || "Stable"}
         vitals={patient?.vitalReadings || []}
       />
+
+      {/* High-Resolution Diagnostic Vision & Radiology Modal */}
+      {isImageAnalysisOpen && patient && patient.images && patient.images.length > 0 && (
+        <ImageAnalysisModal
+          isOpen={isImageAnalysisOpen}
+          onClose={() => setIsImageAnalysisOpen(false)}
+          patientName={patient.name}
+          patientId={patient.id}
+          initialImages={patient.images}
+          onAskAI={(title) => {
+            setIsImageAnalysisOpen(false);
+            sendMessage({ text: `Please analyze the medical scan titled '${title}' for this patient.` }, { body: { patientId } });
+          }}
+        />
+      )}
 
     </div>
   );

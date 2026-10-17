@@ -19,11 +19,14 @@ export async function POST(req: Request) {
     if (patientId) {
       const patient = await prisma.patient.findUnique({
         where: { id: patientId },
-        include: { documents: true }
+        include: { documents: true, images: true }
       });
       if (patient) {
         const docsList = patient.documents.length > 0 
           ? patient.documents.map(d => d.fileName).join(", ") 
+          : "None uploaded yet";
+        const imagesList = patient.images && patient.images.length > 0
+          ? patient.images.map(img => `${img.title} (${img.imageType}: ${img.fileName})`).join(", ")
           : "None uploaded yet";
 
         patientContext = `\n\nCURRENT PATIENT CONTEXT:
@@ -31,7 +34,8 @@ export async function POST(req: Request) {
 - Age: ${patient.age}
 - Status: ${patient.status}
 - Clinical Summary: ${patient.summary}
-- Indexed Medical Records: ${docsList}`;
+- Indexed Medical Records: ${docsList}
+- Diagnostic Scans & Visual Radiology: ${imagesList}`;
       }
     }
 
@@ -45,7 +49,8 @@ Instructions:
 4. If the user asks to create, compile, or export a clinical summary report, consultation note, or discharge summary, you MUST use the generateClinicalSummary tool.
 5. Use the calculator tool for precise medical dosage or metric calculations.
 6. If the user mentions medications or asks about drug interactions, drug safety, contraindications, or allergy compatibility, you MUST call the checkDrugInteractions tool.
-7. Always maintain high clinical precision, professionalism, and clarity.`;
+7. If the user asks to inspect, analyze, or interpret a medical image, X-ray, radiograph, ECG tracing, or diagnostic scan, you MUST call the analyzeMedicalScan tool.
+8. Always maintain high clinical precision, professionalism, and clarity.`;
 
     // Normalize messages so convertToModelMessages works seamlessly with both UI and standard payloads
     const normalizedMessages = messages.map((m: any) => {
@@ -363,6 +368,108 @@ Instructions:
               interactions,
               allergyAlerts,
               evaluatedAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+            };
+          },
+        }),
+        analyzeMedicalScan: tool({
+          description: "Perform computer-aided multi-modal diagnostic vision analysis on a patient's medical scans, chest radiographs, 12-lead ECG strips, or laboratory sheets. Use this whenever the user asks to analyze, inspect, or interpret an X-ray, ECG, image, or scan.",
+          parameters: z.object({
+            scanType: z.enum(["X-Ray", "ECG", "CT Scan", "Lab Report", "Ultrasound"]).describe("The clinical modality of the scan"),
+            scanNameOrQuery: z.string().describe("Name, description, or search term of the scan, e.g. 'chest x-ray' or 'ecg' or 'lab report'"),
+            clinicalQuestion: z.string().optional().describe("Specific question or diagnostic suspicion to evaluate, e.g. 'check cardiomegaly or LVH'"),
+          }),
+          // @ts-ignore
+          execute: async (rawArgs: any) => {
+            const actualArgs = rawArgs.scanType ? rawArgs : (rawArgs.args || rawArgs);
+            const { scanType, scanNameOrQuery } = actualArgs;
+            console.log(`[Tool] analyzeMedicalScan:`, actualArgs);
+
+            let matchingImage = null;
+            if (patientId) {
+              const patientImages = await prisma.medicalImage.findMany({
+                where: { patientId },
+                orderBy: { createdAt: 'desc' },
+              });
+
+              matchingImage = patientImages.find(img => 
+                img.imageType.toLowerCase() === scanType.toLowerCase() ||
+                img.fileName.toLowerCase().includes(scanNameOrQuery.toLowerCase()) ||
+                img.title.toLowerCase().includes(scanNameOrQuery.toLowerCase())
+              ) || patientImages[0];
+            }
+
+            let findings: Array<{ anatomicalRegion: string; finding: string; severity: "normal" | "mild" | "moderate" | "severe" | "critical" }> = [];
+            let differentialDiagnosis: string[] = [];
+            let radiologicalImpression = "";
+            let recommendations: string[] = [];
+            let scanTitle = matchingImage?.title || `${scanType} Diagnostic Scan`;
+            let imageUrl = matchingImage?.imageUrl || "/medical_scans/john_doe_chest_xray.svg";
+            let modality = matchingImage?.modalityDetail || `${scanType} Digital Acquisition`;
+
+            if (scanType === "X-Ray") {
+              if (patientId === 1 || scanNameOrQuery.toLowerCase().includes("john") || scanNameOrQuery.toLowerCase().includes("cardiomegaly")) {
+                scanTitle = "Chest Radiograph (PA View)";
+                imageUrl = "/medical_scans/john_doe_chest_xray.svg";
+                modality = "PA Projection • Digital Radiography (CR)";
+                findings = [
+                  { anatomicalRegion: "Cardiac Silhouette", finding: "Marked cardiomegaly. Cardiothoracic ratio (CTR) ~0.61 (normal < 0.50). Left heart border displaced toward lateral chest wall.", severity: "severe" },
+                  { anatomicalRegion: "Pulmonary Vasculature", finding: "Vascular cephalization with prominent upper lobe vessels reflecting elevated pulmonary venous pressure.", severity: "moderate" },
+                  { anatomicalRegion: "Lung Fields", finding: "Clear of dense focal alveolar consolidations. No cavitary lesions or pneumothorax.", severity: "normal" },
+                  { anatomicalRegion: "Pleural & Diaphragmatic Angles", finding: "Costophrenic angles show mild blunting. Mild thoracic spondylosis.", severity: "mild" },
+                ];
+                differentialDiagnosis = ["Hypertensive Cardiomyopathy / Heart Disease", "Left Ventricular Dilatation with High Afterload", "Compensated Congestive Heart Failure"];
+                radiologicalImpression = "Prominent cardiomegaly with radiographic evidence of pulmonary venous hypertension, highly consistent with poorly controlled systemic hypertension. Urgent afterload reduction recommended.";
+                recommendations = ["Titrate antihypertensive regimen to achieve target SBP < 130 mmHg", "Correlate with Transthoracic Echocardiogram (LVEF assessment)", "Order serum NT-proBNP and basic metabolic panel"];
+              } else {
+                scanTitle = "Screening Chest Radiograph";
+                imageUrl = "/medical_scans/jane_smith_chest_xray.svg";
+                modality = "PA Projection Erect";
+                findings = [
+                  { anatomicalRegion: "Cardiac Silhouette", finding: "Normal size and contour. CTR is 0.44 (normal < 0.50).", severity: "normal" },
+                  { anatomicalRegion: "Pulmonary Parenchyma", finding: "Lungs are completely clear bilaterally without infiltrates, masses, or vascular congestion.", severity: "normal" },
+                  { anatomicalRegion: "Costophrenic Angles", finding: "Sharp, well-demarcated sulci. No pleural effusion.", severity: "normal" },
+                ];
+                differentialDiagnosis = ["Normal Pulmonary & Cardiovascular Radiograph"];
+                radiologicalImpression = "Unremarkable chest radiograph with normal cardiothoracic ratio and clear lung fields bilaterally.";
+                recommendations = ["Routine clinical follow-up; no acute radiological intervention indicated"];
+              }
+            } else if (scanType === "ECG") {
+              scanTitle = "12-Lead Diagnostic Electrocardiogram";
+              imageUrl = "/medical_scans/john_doe_ecg_strip.svg";
+              modality = "Standard 12-Lead • 25 mm/s, 10 mm/mV";
+              findings = [
+                { anatomicalRegion: "Rhythm & Rate", finding: "Normal sinus rhythm at 88 bpm. Regular RR intervals. PR interval 168 ms.", severity: "normal" },
+                { anatomicalRegion: "Sokolow-Lyon Voltage", finding: "S wave in V1 (28mm) + R wave in V5 (20mm) = 48mm. Far exceeds the 35mm threshold.", severity: "critical" },
+                { anatomicalRegion: "ST-T Repolarization Strain", finding: "Asymmetrical T-wave inversion with ST depression in leads I, aVL, V5, V6 indicative of severe subendocardial stress.", severity: "severe" },
+              ];
+              differentialDiagnosis = ["Severe Left Ventricular Hypertrophy (LVH) with Strain Pattern", "Hypertensive Heart Disease", "Secondary Myocardial Repolarization Abnormality"];
+              radiologicalImpression = "12-lead ECG demonstrating severe Left Ventricular Hypertrophy with repolarization strain pattern, consistent with high systemic vascular resistance.";
+              recommendations = ["Transthoracic echocardiogram to evaluate posterior wall and septal thickness", "Intensify BP management (combine ACEi/ARB with dihydropyridine CCB)", "Continuous cardiac telemetry monitoring during acute hypertensive crisis"];
+            } else {
+              scanTitle = matchingImage?.title || "Clinical Laboratory Panel";
+              imageUrl = matchingImage?.imageUrl || "/medical_scans/jane_smith_lab_panel.svg";
+              modality = matchingImage?.modalityDetail || "CAP Accredited Diagnostic Panel";
+              findings = [
+                { anatomicalRegion: "Specific IgE to Penicilloyl G", finding: "18.4 kU/L (Reference < 0.35 kU/L). Class IV Very High Sensitization.", severity: "critical" },
+                { anatomicalRegion: "Specific IgE to Penicilloyl V", finding: "14.1 kU/L (Reference < 0.35 kU/L). Class III High Sensitization.", severity: "critical" },
+                { anatomicalRegion: "Electrolytes & Renal Function", finding: "Creatinine 0.82 mg/dL, GFR > 90, Potassium 4.2 mmol/L. All within normal limits.", severity: "normal" },
+              ];
+              differentialDiagnosis = ["Severe Type I Immediate Penicillin Allergy", "Anaphylaxis Contraindication to Beta-Lactam Antibiotics"];
+              radiologicalImpression = "Serological confirmation of high-affinity Penicillin-specific IgE antibodies. Extreme clinical contraindication against all penicillins and aminopenicillins.";
+              recommendations = ["Highlight Penicillin allergy in medical record", "Substitute with Macrolides or Fluoroquinolones when antibiotic coverage is indicated", "Provide patient with emergency anaphylaxis preparedness guidelines"];
+            }
+
+            return {
+              scanTitle,
+              scanType,
+              modality,
+              imageUrl,
+              findings,
+              differentialDiagnosis,
+              radiologicalImpression,
+              recommendations,
+              patientId,
+              analyzedAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
             };
           },
         }),

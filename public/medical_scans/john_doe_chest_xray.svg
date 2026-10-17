@@ -1,0 +1,87 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 900' width='800' height='900' style='background-color:#05070a; font-family: monospace;'>
+  <defs>
+    <radialGradient id='lungFieldL' cx='35%' cy='45%' r='40%'>
+      <stop offset='0%' stop-color='#1a2430' stop-opacity='0.9'/>
+      <stop offset='70%' stop-color='#0f1720' stop-opacity='0.7'/>
+      <stop offset='100%' stop-color='#05070a' stop-opacity='0.3'/>
+    </radialGradient>
+    <radialGradient id='lungFieldR' cx='65%' cy='45%' r='40%'>
+      <stop offset='0%' stop-color='#1a2430' stop-opacity='0.9'/>
+      <stop offset='70%' stop-color='#0f1720' stop-opacity='0.7'/>
+      <stop offset='100%' stop-color='#05070a' stop-opacity='0.3'/>
+    </radialGradient>
+  </defs>
+
+  <!-- Film base border -->
+  <rect x='10' y='10' width='780' height='880' rx='8' fill='#090d12' stroke='#1e293b' stroke-width='2'/>
+
+  <!-- Radiograph Header -->
+  <text x='35' y='45' fill='#94a3b8' font-size='14' font-weight='bold'>HOSPITAL RADIOLOGY DEPT • DIGITAL RADIOGRAPHY (CR)</text>
+  <text x='35' y='68' fill='#64748b' font-size='12'>PT: DOE, JOHN | ID: #10084 | AGE: 45 M | PROJ: CHEST PA ERECT</text>
+  <text x='35' y='88' fill='#64748b' font-size='11'>DATE: 2026-10-15 08:42 | kVp: 120 | mAs: 4.0 | EXP INDEX: 1840</text>
+  <circle cx='740' cy='55' r='18' fill='#0f172a' stroke='#38bdf8' stroke-width='1.5'/>
+  <text x='734' y='61' fill='#38bdf8' font-size='18' font-weight='bold'>R</text>
+
+  <!-- Spine / Vertebral Column -->
+  <path d='M400,100 L400,850' stroke='#475569' stroke-width='32' opacity='0.3' stroke-dasharray='14,4'/>
+
+  <!-- Clavicles -->
+  <path d='M395,160 Q260,150 180,185' stroke='#94a3b8' stroke-width='14' fill='none' stroke-linecap='round' opacity='0.75'/>
+  <path d='M405,160 Q540,150 620,185' stroke='#94a3b8' stroke-width='14' fill='none' stroke-linecap='round' opacity='0.75'/>
+
+  <!-- Rib Cage Outline (Bilateral) -->
+  <g stroke='#64748b' stroke-width='9' fill='none' opacity='0.55' stroke-linecap='round'>
+    <!-- Right Ribs (Viewer Left) -->
+    <path d='M380,210 Q240,200 170,290 Q240,360 380,330'/>
+    <path d='M380,270 Q220,270 150,380 Q220,440 380,410'/>
+    <path d='M380,340 Q210,340 140,460 Q210,530 380,490'/>
+    <path d='M380,410 Q200,410 135,540 Q210,610 380,570'/>
+    <path d='M380,480 Q190,490 130,620 Q200,680 380,640'/>
+    <path d='M380,560 Q180,570 130,690 Q200,740 380,710'/>
+
+    <!-- Left Ribs (Viewer Right) -->
+    <path d='M420,210 Q560,200 630,290 Q560,360 420,330'/>
+    <path d='M420,270 Q580,270 650,380 Q580,440 420,410'/>
+    <path d='M420,340 Q590,340 660,460 Q590,530 420,490'/>
+    <path d='M420,410 Q600,410 665,540 Q590,610 420,570'/>
+    <path d='M420,480 Q610,490 670,620 Q600,680 420,640'/>
+    <path d='M420,560 Q620,570 670,690 Q600,740 420,710'/>
+  </g>
+
+  <!-- Lungs (Radiolucent dark lung fields) -->
+  <path d='M375,180 C270,180 160,260 160,540 C160,680 200,770 260,780 C320,770 375,690 375,540 Z' fill='url(#lungFieldL)'/>
+  <path d='M425,180 C530,180 640,260 640,540 C640,680 600,770 540,780 C480,770 425,690 425,540 Z' fill='url(#lungFieldR)'/>
+
+  <!-- Bronchovascular Markings -->
+  <g stroke='#334155' stroke-width='2' opacity='0.7' fill='none'>
+    <path d='M380,360 Q320,380 260,430 M380,370 Q300,420 250,510 M380,380 Q320,460 270,590'/>
+    <path d='M420,360 Q480,380 540,430 M420,370 Q500,420 550,510 M420,380 Q480,460 530,590'/>
+  </g>
+
+  <!-- Prominent Aortic Knob -->
+  <ellipse cx='435' cy='280' rx='42' ry='32' fill='#64748b' opacity='0.65'/>
+
+  <!-- CARDIOMEGALY (Enlarged Cardiac Shadow) -->
+  <path d='M395,290 C340,360 305,480 325,580 C335,630 380,720 440,740 C520,745 615,700 625,610 C635,530 550,430 460,370 Z'
+        fill='#94a3b8' opacity='0.75' stroke='#cbd5e1' stroke-width='2'/>
+
+  <!-- Cardiothoracic Ratio Measurement Indicator Overlays -->
+  <line x1='325' y1='620' x2='625' y2='620' stroke='#ef4444' stroke-width='2.5' stroke-dasharray='6,3'/>
+  <circle cx='325' cy='620' r='4' fill='#ef4444'/>
+  <circle cx='625' cy='620' r='4' fill='#ef4444'/>
+  <text x='430' y='610' fill='#ef4444' font-size='13' font-weight='bold'>Cardiac Width: 300mm</text>
+
+  <line x1='155' y1='730' x2='645' y2='730' stroke='#38bdf8' stroke-width='2' stroke-dasharray='6,3'/>
+  <circle cx='155' cy='730' r='3.5' fill='#38bdf8'/>
+  <circle cx='645' cy='730' r='3.5' fill='#38bdf8'/>
+  <text x='355' y='722' fill='#38bdf8' font-size='12' font-weight='bold'>Thoracic Width: 490mm (CTR = 0.61 • Cardiomegaly)</text>
+
+  <!-- Diaphragm & Costophrenic Angles -->
+  <path d='M130,760 Q260,700 390,750' stroke='#64748b' stroke-width='10' fill='none' opacity='0.7'/>
+  <path d='M410,750 Q540,730 670,760' stroke='#64748b' stroke-width='10' fill='none' opacity='0.7'/>
+
+  <!-- Radiology Annotation Watermarks -->
+  <rect x='30' y='810' width='420' height='55' rx='6' fill='#0f172a' stroke='#334155'/>
+  <text x='45' y='832' fill='#f87171' font-size='12' font-weight='bold'>[FINDING] Marked Cardiomegaly with LV configuration</text>
+  <text x='45' y='850' fill='#94a3b8' font-size='11'>Pulmonary venous hypertension / vascular cephalization noted.</text>
+</svg>

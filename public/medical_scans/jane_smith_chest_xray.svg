@@ -1,0 +1,65 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 900' width='800' height='900' style='background-color:#05070a; font-family: monospace;'>
+  <defs>
+    <radialGradient id='janeLungFieldL' cx='35%' cy='45%' r='40%'>
+      <stop offset='0%' stop-color='#1e293b' stop-opacity='0.95'/>
+      <stop offset='70%' stop-color='#0f172a' stop-opacity='0.75'/>
+      <stop offset='100%' stop-color='#05070a' stop-opacity='0.3'/>
+    </radialGradient>
+    <radialGradient id='janeLungFieldR' cx='65%' cy='45%' r='40%'>
+      <stop offset='0%' stop-color='#1e293b' stop-opacity='0.95'/>
+      <stop offset='70%' stop-color='#0f172a' stop-opacity='0.75'/>
+      <stop offset='100%' stop-color='#05070a' stop-opacity='0.3'/>
+    </radialGradient>
+  </defs>
+
+  <rect x='10' y='10' width='780' height='880' rx='8' fill='#090d12' stroke='#1e293b' stroke-width='2'/>
+
+  <!-- Header -->
+  <text x='35' y='45' fill='#94a3b8' font-size='14' font-weight='bold'>HOSPITAL RADIOLOGY DEPT • DIGITAL RADIOGRAPHY (CR)</text>
+  <text x='35' y='68' fill='#64748b' font-size='12'>PT: SMITH, JANE | ID: #10085 | AGE: 32 F | PROJ: CHEST PA ERECT</text>
+  <text x='35' y='88' fill='#64748b' font-size='11'>DATE: 2026-10-14 10:15 | kVp: 110 | mAs: 3.2 | EXP INDEX: 1650</text>
+  <circle cx='740' cy='55' r='18' fill='#0f172a' stroke='#10b981' stroke-width='1.5'/>
+  <text x='734' y='61' fill='#10b981' font-size='18' font-weight='bold'>R</text>
+
+  <!-- Vertebral Column -->
+  <path d='M400,100 L400,850' stroke='#475569' stroke-width='28' opacity='0.25' stroke-dasharray='14,4'/>
+
+  <!-- Clavicles -->
+  <path d='M395,165 Q280,155 190,190' stroke='#94a3b8' stroke-width='12' fill='none' stroke-linecap='round' opacity='0.75'/>
+  <path d='M405,165 Q520,155 610,190' stroke='#94a3b8' stroke-width='12' fill='none' stroke-linecap='round' opacity='0.75'/>
+
+  <!-- Ribs (Symmetric, Normal) -->
+  <g stroke='#64748b' stroke-width='8' fill='none' opacity='0.5' stroke-linecap='round'>
+    <path d='M380,210 Q240,200 180,285 Q250,350 380,320'/>
+    <path d='M380,270 Q230,265 160,370 Q230,430 380,400'/>
+    <path d='M380,340 Q220,335 150,450 Q220,520 380,480'/>
+    <path d='M380,410 Q210,405 145,530 Q220,600 380,560'/>
+    <path d='M380,480 Q200,480 140,610 Q210,670 380,630'/>
+
+    <path d='M420,210 Q560,200 620,285 Q550,350 420,320'/>
+    <path d='M420,270 Q570,265 640,370 Q570,430 420,400'/>
+    <path d='M420,340 Q580,335 650,450 Q580,520 420,480'/>
+    <path d='M420,410 Q590,405 655,530 Q580,600 420,560'/>
+    <path d='M420,480 Q600,480 660,610 Q590,670 420,630'/>
+  </g>
+
+  <!-- Clear Lung Fields -->
+  <path d='M375,185 C275,185 170,265 170,540 C170,680 205,775 265,785 C325,775 375,690 375,540 Z' fill='url(#janeLungFieldL)'/>
+  <path d='M425,185 C525,185 630,265 630,540 C630,680 595,775 535,785 C475,775 425,690 425,540 Z' fill='url(#janeLungFieldR)'/>
+
+  <!-- Normal Cardiac Silhouette (CTR = 0.44 • Normal < 0.50) -->
+  <path d='M395,310 C365,370 350,470 365,560 C375,620 410,710 450,730 C510,735 560,680 565,600 C570,530 515,440 450,380 Z'
+        fill='#94a3b8' opacity='0.7' stroke='#cbd5e1' stroke-width='1.8'/>
+
+  <!-- Sharp Costophrenic Angles -->
+  <path d='M140,760 Q265,705 390,750' stroke='#64748b' stroke-width='9' fill='none' opacity='0.7'/>
+  <path d='M410,750 Q535,715 660,760' stroke='#64748b' stroke-width='9' fill='none' opacity='0.7'/>
+
+  <circle cx='155' cy='755' r='14' fill='none' stroke='#10b981' stroke-width='2' stroke-dasharray='3,2'/>
+  <text x='70' y='790' fill='#10b981' font-size='11' font-weight='bold'>Sharp Costophrenic Angle</text>
+
+  <!-- Bottom Annotation -->
+  <rect x='30' y='810' width='420' height='55' rx='6' fill='#0f172a' stroke='#334155'/>
+  <text x='45' y='832' fill='#10b981' font-size='12' font-weight='bold'>[IMPRESSION] Normal Chest Radiograph</text>
+  <text x='45' y='850' fill='#94a3b8' font-size='11'>Clear lungs bilaterally. Normal cardiac size (CTR: 0.44). No effusion.</text>
+</svg>

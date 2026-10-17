@@ -6,6 +6,7 @@ import { ChatSidebar, PatientWithDocs } from "@/components/ChatSidebar";
 import { AddPatientModal } from "@/components/AddPatientModal";
 import { DocumentViewerModal } from "@/components/DocumentViewerModal";
 import { VitalsTrajectoryModal } from "@/components/VitalsTrajectoryModal";
+import { ImageAnalysisModal } from "@/components/ImageAnalysisModal";
 import { 
   MagnifyingGlassIcon, 
   UserCircleIcon, 
@@ -21,7 +22,8 @@ import {
   CheckCircleIcon,
   ArrowTrendingUpIcon,
   ShieldExclamationIcon,
-  EyeIcon
+  EyeIcon,
+  PhotoIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { getPatients } from "./actions/patients";
@@ -36,9 +38,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
 
-  // Epic 5 Modals
+  // Epic 5 & 6 Modals
   const [viewingDoc, setViewingDoc] = useState<{ fileName: string; patientId: number; patientName: string } | null>(null);
   const [trajectoryPatient, setTrajectoryPatient] = useState<PatientWithDocs | null>(null);
+  const [imageAnalysisPatient, setImageAnalysisPatient] = useState<PatientWithDocs | null>(null);
 
   const refreshPatients = () => {
     setLoading(true);
@@ -373,6 +376,24 @@ export default function Dashboard() {
                             <ArrowTrendingUpIcon className="w-3.5 h-3.5 mr-0.5" />
                             <span>Curve</span>
                           </button>
+
+                          {/* Scans Trigger */}
+                          {patient.images && patient.images.length > 0 && (
+                            <>
+                              <span>•</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageAnalysisPatient(patient);
+                                }}
+                                className="flex items-center text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                                title="View diagnostic radiographs & medical vision scans"
+                              >
+                                <PhotoIcon className="w-3.5 h-3.5 mr-0.5" />
+                                <span>{patient.images.length} Scans</span>
+                              </button>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
@@ -717,6 +738,17 @@ export default function Dashboard() {
                           >
                             <ArrowTrendingUpIcon className="w-4 h-4" />
                           </button>
+
+                          {p.images && p.images.length > 0 && (
+                            <button
+                              onClick={() => setImageAnalysisPatient(p)}
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-400 hover:bg-cyan-200 transition cursor-pointer flex items-center space-x-1"
+                              title="Click to view diagnostic scans"
+                            >
+                              <PhotoIcon className="w-3 h-3 text-cyan-500" />
+                              <span>{p.images.length} Scans</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -777,6 +809,21 @@ export default function Dashboard() {
           patientId={trajectoryPatient.id}
           status={trajectoryPatient.status}
           vitals={trajectoryPatient.vitalReadings || []}
+        />
+      )}
+
+      {/* High-Resolution Diagnostic Vision & Radiology Modal */}
+      {imageAnalysisPatient && imageAnalysisPatient.images && imageAnalysisPatient.images.length > 0 && (
+        <ImageAnalysisModal
+          isOpen={!!imageAnalysisPatient}
+          onClose={() => setImageAnalysisPatient(null)}
+          patientName={imageAnalysisPatient.name}
+          patientId={imageAnalysisPatient.id}
+          initialImages={imageAnalysisPatient.images}
+          onAskAI={(title) => {
+            setSelectedPatient(imageAnalysisPatient.id);
+            setImageAnalysisPatient(null);
+          }}
         />
       )}
       

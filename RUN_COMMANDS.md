@@ -168,6 +168,37 @@ To access your patients and test the AI features:
 
 ---
 
+### Test K: Multi-Modal Medical Image Vision & Radiology Viewer (Epic 6)
+1. On **John Doe's** card on the dashboard roster (or inside his AI chat drawer):
+   - Notice the cyan badge: **`2 Scans`** (or `2 Diagnostic Scans` in chat).
+   - Click directly on the **`2 Scans`** button.
+2. The **High-Resolution Medical Vision Analysis Modal** opens:
+   - **Diagnostic Viewport:** Displays the Chest Radiograph (PA View) with anatomical rib cage, clavicles, lung fields, and the enlarged cardiac shadow.
+   - **Invert Film Filter:** Click the **`Invert Film`** button to invert radiographic density tones (white bone vs dark radiolucency) for micro-calcification and soft-tissue contrast reading.
+   - **Granular Adjustments:** Adjust the **Zoom** (-/+), **Contrast**, and **Brightness** sliders.
+   - **Scan Switching (Gallery Tab):** On the right panel, click **`Scans (2)`**, then click **`12-Lead Diagnostic Electrocardiogram`**.
+     - Notice the viewport transitions smoothly to John's high-resolution ECG pink grid tracing with Sokolow-Lyon LVH indicators ($48\text{ mm}$).
+   - **DICOM Metadata Tab:** View technical exposure parameters, acquisition timestamps, and patient isolation verification.
+   - Close the viewer (click `Close Viewer` or `×`).
+3. Now test **Autonomous Multi-Modal AI Copilot Vision**:
+   - Open John Doe's AI Assistant chat drawer.
+   - Type in chat:
+     > *"Please inspect and analyze the chest X-ray for John Doe."*
+   - The AI Copilot autonomously executes the `analyzeMedicalScan` tool and renders the **Medical Diagnostic Vision Review Generative UI Card**:
+     - Visual badge: `AI Vision Analyzed`
+     - Clickable thumbnail preview of the radiograph.
+     - Differential diagnosis tags: `Hypertensive Cardiomyopathy`, `Left Ventricular Dilatation`, `Compensated Heart Failure`.
+     - Categorized findings with severity badges: **Severe** (Cardiomegaly, CTR 0.61), **Moderate** (Pulmonary venous congestion), **Normal** (No focal pneumonia).
+     - Radiological AI impression: Confirms marked cardiomegaly and vascular cephalization secondary to severe hypertension.
+     - Actionable clinical next steps (Echo correlation, BP titration).
+     - Click **`Open in High-Resolution Vision Inspector`** on the card to immediately launch the full PACS-style modal!
+4. Test with **Jane Smith**:
+   - Open Jane Smith's card and ask:
+     > *"Can you analyze Jane Smith's lab panel or chest X-ray?"*
+   - The vision engine inspects Jane's normal chest X-ray ($CTR = 0.44$) and confirms clear lung fields with normal cardiac silhouette, or evaluates her allergy panel with Class IV penicillin hypersensitivity!
+
+---
+
 ## 3. How to Start Services Manually (If Ever Stopped)
 
 If you reboot your machine or close the terminals, run these 3 commands:

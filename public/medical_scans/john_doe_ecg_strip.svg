@@ -1,0 +1,64 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 650' width='1000' height='650' style='background-color:#fff5f5; font-family: monospace;'>
+  <defs>
+    <pattern id='ecgMinor' width='10' height='10' patternUnits='userSpaceOnUse'>
+      <path d='M 10 0 L 0 0 0 10' fill='none' stroke='#fecdd3' stroke-width='0.5'/>
+    </pattern>
+    <pattern id='ecgMajor' width='50' height='50' patternUnits='userSpaceOnUse'>
+      <rect width='50' height='50' fill='url(#ecgMinor)'/>
+      <path d='M 50 0 L 0 0 0 50' fill='none' stroke='#f43f5e' stroke-width='1.2' opacity='0.7'/>
+    </pattern>
+  </defs>
+
+  <!-- Background Grid -->
+  <rect width='1000' height='650' fill='url(#ecgMajor)'/>
+
+  <!-- Top Metadata Header -->
+  <rect x='15' y='10' width='970' height='55' rx='4' fill='#ffffff' stroke='#e11d48' stroke-width='1.5' opacity='0.95'/>
+  <text x='30' y='32' fill='#0f172a' font-size='13' font-weight='bold'>MEDINTEL 12-LEAD DIAGNOSTIC ELECTROCARDIOGRAM (ECG)</text>
+  <text x='30' y='50' fill='#475569' font-size='11'>PATIENT: DOE, JOHN | ID: 1 | HR: 88 BPM | PR: 168ms | QRS: 114ms | QT/QTc: 412/480ms | P-R-T AXES: 52 / -15 / 164</text>
+  <text x='740' y='32' fill='#be123c' font-size='12' font-weight='bold'>SPEED: 25 mm/s • GAIN: 10 mm/mV</text>
+  <text x='740' y='50' fill='#be123c' font-size='11' font-weight='bold'>CRITERIA: SOKOLOW-LYON LVH POSITIVE (48mm)</text>
+
+  <!-- Calibration Pulses (10mm/mV) -->
+  <path d='M 25 150 L 35 150 L 35 100 L 55 100 L 55 150 L 65 150' stroke='#0f172a' stroke-width='2' fill='none'/>
+  <path d='M 25 300 L 35 300 L 35 250 L 55 250 L 55 300 L 65 300' stroke='#0f172a' stroke-width='2' fill='none'/>
+  <path d='M 25 450 L 35 450 L 35 400 L 55 400 L 55 450 L 65 450' stroke='#0f172a' stroke-width='2' fill='none'/>
+
+  <!-- LEAD I -->
+  <text x='70' y='95' fill='#9f1239' font-size='14' font-weight='bold'>LEAD I</text>
+  <path d='M 70 150 Q 85 145 95 150 L 105 153 L 115 150 L 122 170 L 132 80 L 140 165 L 148 150 Q 170 165 195 150 L 235 150
+           Q 250 145 260 150 L 270 153 L 280 150 L 287 170 L 297 80 L 305 165 L 313 150 Q 335 165 360 150 L 400 150
+           Q 415 145 425 150 L 435 153 L 445 150 L 452 170 L 462 80 L 470 165 L 478 150 Q 500 165 525 150 L 550 150'
+        stroke='#0f172a' stroke-width='2.2' fill='none' stroke-linecap='round'/>
+
+  <!-- LEAD V1 (Deep S Wave - 28mm) -->
+  <text x='570' y='95' fill='#9f1239' font-size='14' font-weight='bold'>LEAD V1 (Deep S Wave: 28mm)</text>
+  <path d='M 570 150 Q 585 146 595 150 L 602 144 L 608 150 L 612 140 L 620 260 L 626 150 Q 640 160 660 150 L 710 150
+           Q 725 146 735 150 L 742 144 L 748 150 L 752 140 L 760 260 L 766 150 Q 780 160 800 150 L 850 150
+           Q 865 146 875 150 L 882 144 L 888 150 L 892 140 L 900 260 L 906 150 Q 920 160 940 150 L 980 150'
+        stroke='#0f172a' stroke-width='2.2' fill='none' stroke-linecap='round'/>
+
+  <!-- LEAD II -->
+  <text x='70' y='245' fill='#9f1239' font-size='14' font-weight='bold'>LEAD II</text>
+  <path d='M 70 300 Q 85 292 95 300 L 105 304 L 115 300 L 120 310 L 130 220 L 138 315 L 145 300 Q 170 290 195 300 L 235 300
+           Q 250 292 260 300 L 270 304 L 280 300 L 285 310 L 295 220 L 303 315 L 310 300 Q 335 290 360 300 L 400 300
+           Q 415 292 425 300 L 435 304 L 445 300 L 450 310 L 460 220 L 468 315 L 475 300 Q 500 290 525 300 L 550 300'
+        stroke='#0f172a' stroke-width='2.2' fill='none' stroke-linecap='round'/>
+
+  <!-- LEAD V5 (Tall R Wave - 20mm + T-wave Inversion Strain) -->
+  <text x='570' y='245' fill='#9f1239' font-size='14' font-weight='bold'>LEAD V5 (Tall R: 20mm + LV Strain Pattern)</text>
+  <path d='M 570 300 Q 585 294 595 300 L 602 304 L 608 300 L 614 315 L 624 180 L 632 310 L 640 300 Q 660 325 685 300 L 725 300
+           Q 740 294 750 300 L 757 304 L 763 300 L 769 315 L 779 180 L 787 310 L 795 300 Q 815 325 840 300 L 880 300
+           Q 895 294 905 300 L 912 304 L 918 300 L 924 315 L 934 180 L 942 310 L 950 300 Q 970 325 990 300'
+        stroke='#0f172a' stroke-width='2.2' fill='none' stroke-linecap='round'/>
+
+  <!-- Continuous Rhythm Strip II -->
+  <rect x='15' y='480' width='970' height='155' rx='4' fill='#ffffff' opacity='0.85' stroke='#fda4af'/>
+  <text x='25' y='505' fill='#881337' font-size='13' font-weight='bold'>CONTINUOUS RHYTHM STRIP II (SINUS RHYTHM • LVH WITH REPOLARIZATION ABNORMALITY)</text>
+  <path d='M 25 580 Q 45 570 60 580 L 75 585 L 85 580 L 92 600 L 102 470 L 112 595 L 120 580 Q 145 605 175 580 L 225 580
+           Q 245 570 260 580 L 275 585 L 285 580 L 292 600 L 302 470 L 312 595 L 320 580 Q 345 605 375 580 L 425 580
+           Q 445 570 460 580 L 475 585 L 485 580 L 492 600 L 502 470 L 512 595 L 520 580 Q 545 605 575 580 L 625 580
+           Q 645 570 660 580 L 675 585 L 685 580 L 692 600 L 702 470 L 712 595 L 720 580 Q 745 605 775 580 L 825 580
+           Q 845 570 860 580 L 875 585 L 885 580 L 892 600 L 902 470 L 912 595 L 920 580 Q 945 605 975 580'
+        stroke='#0f172a' stroke-width='2.4' fill='none' stroke-linecap='round'/>
+</svg>

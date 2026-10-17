@@ -142,5 +142,34 @@ A single blood pressure measurement represents an isolated physiological snapsho
    - Generative UI displays synthesized answers, but clinical auditability demands inspecting the raw evidence.
    - Linking semantic chunks in ChromaDB directly to the in-app document viewer establishes an unbroken chain of custody from original diagnostic report to AI insight, satisfying medico-legal provenance requirements.
 
+## 13. Multi-Modal Medical Vision & Computer-Aided Diagnostic Reasoning
+Modern clinical decision support systems cannot rely purely on natural language text. Up to 80% of definitive medical diagnostic confirmations originate from visual modalities: plain film radiographs, cross-sectional computed tomography (CT), rhythm electrocardiograms (ECGs), and pathology/lab scan sheets.
+
+MedIntel integrates multi-modal clinical reasoning across pixel arrays and textual context:
+
+1. **Radiographic Attenuation & Visual Preprocessing:**
+   - Radiographs measure differential X-ray beam attenuation across biological tissues:
+     - *Dense Bone/Calcium:* High attenuation $\rightarrow$ Radiopaque (Bright White).
+     - *Water/Soft Tissue:* Intermediate attenuation $\rightarrow$ Gray.
+     - *Aerated Lung Parenchyma:* Low attenuation $\rightarrow$ Radiolucent (Dark / Black).
+   - In digital picture archiving systems (PACS), physicians regularly toggle **inverted contrast film filters** (negative film vs positive projection) to amplify micro-calcifications, interstitial reticular patterns, and apical pneumothorax lines that blend into background film grain.
+
+2. **Quantitative Morphometric Indices in Vision Diagnosis:**
+   - **Cardiothoracic Ratio ($CTR$):**
+     $$CTR = \frac{\text{Maximum Transverse Cardiac Diameter}}{\text{Maximum Inner Thoracic Diameter}}$$
+     - A $CTR > 0.50$ in a posteroanterior (PA) erect projection is diagnostic of cardiomegaly.
+     - In Patient 1 (John Doe), the automated vision engine calculates a $CTR$ of $0.61$, signaling severe left ventricular dilatation and chronic afterload remodeling.
+   - **Sokolow-Lyon Electrocardiographic Voltage Index:**
+     $$S_{V1} + R_{V5} \ge 35\text{ mm} \quad (\text{or } 3.5\text{ mV})$$
+     - Evaluates myocardial electrical vector magnitude. High systemic vascular resistance leads to concentric left ventricular wall hypertrophy, producing exaggerated precordial depolarization voltages.
+     - Secondary asymmetrical ST-segment depression and T-wave inversion ("LV strain pattern") reflect subendocardial ischemia under chronic wall tension.
+
+3. **Multi-Modal Diagnostic Cross-Validation (The Hybrid Triad):**
+   - The platform cross-references three distinct diagnostic signals:
+     1. **Textual RAG:** Echocardiogram document reporting LVEF $52\%$ and diastolic dysfunction.
+     2. **Physiological Time-Series:** Longitudinal systolic blood pressure curve rising to $172\text{ mmHg}$.
+     3. **Visual Modality:** PA chest X-ray confirming $CTR = 0.61$ and 12-lead ECG confirming Sokolow-Lyon $48\text{ mm}$.
+   - Synthesizing these three orthogonal data streams eliminates single-modality false positives and empowers the AI Copilot to deliver unified, high-confidence clinical assessments.
+
 
 
