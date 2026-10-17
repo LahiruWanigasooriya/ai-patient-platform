@@ -26,6 +26,10 @@ export async function getPatients() {
           },
           clinicalNotes: {
             orderBy: { createdAt: 'desc' }
+          },
+          trialMatches: {
+            include: { trial: true },
+            orderBy: { matchScore: 'desc' }
           }
         },
         orderBy: { updatedAt: 'desc' }
@@ -265,6 +269,58 @@ export async function deleteClinicalNote(noteId: string) {
   return await prisma.clinicalNote.delete({
     where: { id: noteId },
   });
+}
+
+export async function getClinicalTrials() {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  return await prisma.clinicalTrial.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function getPatientTrialMatches(patientId: number) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  return await prisma.trialMatch.findMany({
+    where: { patientId },
+    include: { trial: true },
+    orderBy: { matchScore: 'desc' },
+  });
+}
+
+export async function enrollPatientInTrial(patientId: number, trialId: string) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("Unauthorized");
+  }
+
+  const updatedMatch = await prisma.trialMatch.update({
+    where: {
+      patientId_trialId: {
+        patientId,
+        trialId,
+      },
+    },
+    data: {
+      status: "Enrolled",
+    },
+    include: { trial: true },
+  });
+
+  // Touch patient updatedAt
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { updatedAt: new Date() },
+  });
+
+  return updatedMatch;
 }
 
 

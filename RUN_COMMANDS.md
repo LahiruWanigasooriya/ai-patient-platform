@@ -228,6 +228,32 @@ To access your patients and test the AI features:
      - Click **`Sign & Commit Note to Chart`** directly on the chat card!
      - The button immediately updates to a verified green badge: **`✓ Signed & Committed to EHR Chart`**!
 
+
+### Test M: Clinical Trial & Protocol Matching Engine (Epic 8)
+1. On **John Doe's** patient card on the dashboard roster:
+   - Notice the amber badge: **`1 Trials`** (or in the AI chat drawer header: **`Trials`**).
+   - Click directly on the **`1 Trials`** button.
+2. The **Clinical Trial & Protocol Matching Engine Modal** opens:
+   - **Protocol Match Acuity:** Displays *"1 High-Probability Protocol Identified"*.
+   - **ARREST-HTN (NCT-05189241):** Notice the prominent **`96% MATCH`** badge, Phase III classification, condition *"Cardiovascular & Resistant Hypertension"*, and sponsor *"NHLBI"*.
+   - **Satisfied Inclusions Checklist:** Verified green checks (✓) for Age 45, SBP 174 mmHg, LVH (Sokolow-Lyon 48mm, CTR 0.61), and Lisinopril therapy.
+   - **Exclusion Status:** Verified *"No disqualifying exclusion criteria identified"*.
+   - **AI Protocol Matching Rationale:** Narrative detailing patient's severe refractory hypertension with objective target-organ hypertrophy.
+   - **Protocol Enrollment:** Click **`Refer Patient & Enroll in Trial`**.
+     - The status immediately updates to a verified green badge: **`✓ Patient Enrolled in Protocol`**!
+   - Close the modal (`×`).
+3. Now test **Autonomous AI Copilot Protocol Matching in Chat**:
+   - Open John Doe's AI Assistant chat drawer.
+   - Type in chat:
+     > *"Are there any clinical trials or experimental protocols that John Doe qualifies for?"*
+   - The AI Copilot autonomously executes the `matchClinicalTrials` tool and streams the **Clinical Trial & Protocol Eligibility Screener Generative UI Card**:
+     - Displays candidate protocols (ARREST-HTN, PEN-DESENS) with match percentages, satisfied inclusion criteria, and trial referral guidance.
+     - Displays the verified **`Enrolled`** status on ARREST-HTN.
+     - Click **`Inspect All Protocol Criteria in Clinical Trials Studio`** to launch the full modal!
+4. Test Exclusion Rules with **Robert Johnson**:
+   - Open Robert Johnson's card (Day 7 post-op appendectomy).
+   - Notice the trial matching engine flags **ONCO-PREVENT** as excluded with a red alert: *"CRITICAL EXCLUSION: Recent abdominal surgery within 30 days"*, validating hard safety rules!
+
 ---
 
 ## 3. How to Start Services Manually (If Ever Stopped)

@@ -281,3 +281,41 @@ We implemented a robust persistence layer and authentication framework to transi
    - Added interactive `🎙️ X Notes` trigger button on each patient card in the roster.
    - Added AI Scribe quick trigger in the chat header and document chips bar.
    - Synchronized real-time patient refresh upon note commit.
+
+---
+
+## Epic 8: Clinical Trial & Protocol Matching Engine (Completed)
+
+*Successfully engineered an autonomous clinical trial and precision protocol matching engine that parses multi-center clinical trials, maps complex inclusion and exclusion criteria against patient biomarkers, vitals trajectories, and surgical histories, computes quantitative eligibility scores (0-100%), and facilitates direct physician protocol enrollment.*
+
+**Completed Steps:**
+1. **Relational Trial Architecture (`prisma/schema.prisma` & `src/app/actions/patients.ts`):**
+   - Implemented `ClinicalTrial` and `TrialMatch` models in PostgreSQL:
+     - `ClinicalTrial`: `id` (e.g. `NCT-05189241`), `title`, `phase`, `condition`, `sponsor`, `status`, `summary`, `inclusionCriteria`, `exclusionCriteria`, `targetBiomarkers`.
+     - `TrialMatch`: `patientId`, `trialId`, `matchScore` (0-100%), `status` (`"Eligible"`, `"Candidate"`, `"Ineligible"`, `"Enrolled"`), `matchedInclusions`, `unmatchedInclusions`, `exclusionFlags`, `aiRationale`, `evaluatedAt`.
+   - Updated `Patient` relation `trialMatches TrialMatch[]` with cascade delete.
+   - Synchronized schema via `npx prisma db push && npx prisma generate`.
+   - Updated `getPatients()` to include `trialMatches: { include: { trial: true }, orderBy: { matchScore: 'desc' } }`.
+   - Added server actions: `getClinicalTrials()`, `getPatientTrialMatches(patientId)`, and `enrollPatientInTrial(patientId, trialId)`.
+2. **Benchmark Multi-Center Clinical Trials Seeding (`prisma/seed_trials.ts`):**
+   - Seeded 4 benchmark clinical trials covering cardiovascular, immunological, respiratory, and oncological domains:
+     - `NCT-05189241`: ARREST-HTN Phase III Trial (NHLBI) - Multi-pathway mineralocorticoid/calcium blockade in resistant hypertension. (John Doe: 96% Match).
+     - `NCT-04982133`: PEN-DESENS Phase II Trial (NIAID) - Sublingual peptide desensitization in high-titer beta-lactam IgE allergy. (Jane Smith: 98% Match).
+     - `NCT-05341209`: BIO-AIR Phase III Trial - Anti-IL-5R alpha monoclonal biologic in refractory eosinophilic asthma. (Emily Davis: 92% Match).
+     - `NCT-04721908`: ONCO-PREVENT Phase II Trial - cfDNA methylation surveillance in gastrointestinal neoplasia. (Robert Johnson: 35% Match, Excluded due to recent surgery within 30 days).
+3. **Clinical Trial & Protocol Matching Modal (`src/components/ClinicalTrialsModal.tsx`):**
+   - High-fidelity precision medicine modal featuring:
+     - Patient acuity header with high-match protocol count badge.
+     - Protocol filter tabs: "All Trials", "Eligible Only (Score >= 70%)", and "Enrolled".
+     - Granular trial cards displaying Match Score dial (96% Prime Eligibility), Phase badge, Sponsor, and target biomarkers.
+     - Dual-column criteria evaluation: Satisfied Inclusion Criteria (✓) vs Disqualifying Exclusion Flags (×).
+     - AI Protocol Matching Rationale explaining the physiological and pharmacological compatibility.
+     - Direct "Refer Patient & Enroll in Trial" button that commits enrollment to PostgreSQL and updates patient state.
+4. **AI Copilot Protocol Matching Tool & Generative UI (`src/app/api/chat/route.ts` & `src/components/ChatSidebar.tsx`):**
+   - Added `matchClinicalTrials` agentic tool with Zod schema in chat API route.
+   - Built the **Clinical Trial & Protocol Eligibility Screener** Generative UI Card in `ChatSidebar.tsx`:
+     - Displays top candidate protocols, match percentages, satisfied inclusion checklists, and exclusion alerts.
+     - Features in-stream "Enroll in Protocol" button and "Inspect All Protocol Criteria in Clinical Trials Studio" trigger.
+5. **Dashboard Roster & Header Integration (`src/app/page.tsx` & `src/components/ChatSidebar.tsx`):**
+   - Added interactive `🎯 X Trials` trigger button to each patient card on the roster.
+   - Added `Trials` quick link in the chat header and document chips bar.
