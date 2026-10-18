@@ -436,3 +436,9 @@ We implemented a robust persistence layer and authentication framework to transi
    - In-modal document upload section with live list of attached PDFs and FastAPI ChromaDB / PostgreSQL indexing.
 6. **Confirmation Safeguard Modal ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx)):**
    - High-visibility confirmation dialog before deleting patient data, with loading spinners and automatic patient roster refresh.
+7. **DevTools-Style Resizable AI Chat Sidebar ([page.tsx](file:///F:/My%20Projects/ai-patient-platform/src/app/page.tsx) & [ChatSidebar.tsx](file:///F:/My%20Projects/ai-patient-platform/src/components/ChatSidebar.tsx)):**
+   - Draggable left margin splitter handle with `col-resize` cursor, hover/active Emerald accent lines, and vertical grab pill.
+   - Smooth 60fps drag resizing with bounds (`340px` min up to `1100px` max), text selection locking during drag, and zero transition lag.
+   - Double-click on handle resets to standard `440px` width.
+   - User width preference persisted in browser `localStorage` (`medintel-chat-sidebar-width`).
+   - Supports both mouse and touch drag events.

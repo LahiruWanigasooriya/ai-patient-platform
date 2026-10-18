@@ -65,6 +65,82 @@ export default function Dashboard() {
   const [deletingPatient, setDeletingPatient] = useState<PatientWithDocs | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Resizable AI Chat Sidebar States
+  const [sidebarWidth, setSidebarWidth] = useState<number>(440);
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState<boolean>(false);
+
+  // Load saved sidebar width from localStorage
+  useEffect(() => {
+    try {
+      const savedWidth = localStorage.getItem("medintel-chat-sidebar-width");
+      if (savedWidth) {
+        const parsed = parseInt(savedWidth, 10);
+        if (!isNaN(parsed) && parsed >= 340 && parsed <= 1200) {
+          setSidebarWidth(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Dragging logic for left margin splitter (similar to browser inspection panel)
+  useEffect(() => {
+    if (!isDraggingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      const minWidth = 340;
+      const maxWidth = Math.max(minWidth, Math.min(window.innerWidth - 320, 1100));
+      const clampedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      setSidebarWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingSidebar(false);
+      try {
+        localStorage.setItem("medintel-chat-sidebar-width", sidebarWidth.toString());
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      const newWidth = window.innerWidth - e.touches[0].clientX;
+      const minWidth = 320;
+      const maxWidth = Math.max(minWidth, Math.min(window.innerWidth - 80, 1100));
+      const clampedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      setSidebarWidth(clampedWidth);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDraggingSidebar(false);
+      try {
+        localStorage.setItem("medintel-chat-sidebar-width", sidebarWidth.toString());
+      } catch {
+        // ignore
+      }
+    };
+
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isDraggingSidebar, sidebarWidth]);
+
   // Close 3-dots dropdown when clicking outside
   useEffect(() => {
     const handleWindowClick = () => setActiveMenuPatientId(null);
@@ -935,9 +1011,47 @@ export default function Dashboard() {
         </main>
       </div>
 
-      {/* Right Sidebar (AI Chatbot) - Only visible when a patient is selected */}
-      <div className={`transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 z-30 ${selectedPatient ? 'w-[430px] translate-x-0' : 'w-0 translate-x-full border-none'}`}>
-        <div className="h-full w-[430px]">
+      {/* Right Sidebar (AI Chatbot) - Resizable with draggable left margin splitter (like browser DevTools inspector) */}
+      <div 
+        style={{ width: selectedPatient ? `${sidebarWidth}px` : '0px' }}
+        className={`h-full border-l border-gray-200 dark:border-gray-800 z-30 relative flex-shrink-0 ${
+          isDraggingSidebar ? 'transition-none' : 'transition-[width] duration-300 ease-in-out'
+        } ${selectedPatient ? 'visible' : 'invisible overflow-hidden border-none'}`}
+      >
+        {/* Left Margin Resize Drag Handle */}
+        {selectedPatient && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsDraggingSidebar(true);
+            }}
+            onTouchStart={() => setIsDraggingSidebar(true)}
+            onDoubleClick={() => {
+              setSidebarWidth(440);
+              try {
+                localStorage.setItem("medintel-chat-sidebar-width", "440");
+              } catch {}
+            }}
+            className={`absolute -left-1.5 top-0 bottom-0 w-3 z-40 cursor-col-resize group flex items-center justify-center select-none ${
+              isDraggingSidebar ? 'bg-emerald-500/20' : 'hover:bg-emerald-500/10'
+            }`}
+            title="Drag left/right to resize AI Assistant panel (Double-click to reset)"
+          >
+            {/* Visual separator line on hover/active */}
+            <div className={`w-0.5 h-full transition-colors duration-150 ${
+              isDraggingSidebar ? 'bg-emerald-500' : 'bg-transparent group-hover:bg-emerald-500/70'
+            }`} />
+
+            {/* Subtle grab pill indicator */}
+            <div className={`absolute top-1/2 -translate-y-1/2 w-1.5 h-9 rounded-full transition-all duration-150 shadow-2xs ${
+              isDraggingSidebar 
+                ? 'bg-emerald-600 scale-110' 
+                : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-emerald-500 group-hover:scale-110'
+            }`} />
+          </div>
+        )}
+
+        <div className="h-full w-full overflow-hidden">
           {selectedPatient && (
             <ChatSidebar 
               key={selectedPatient}
